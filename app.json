@@ -1,25 +1,66 @@
 {
   "expo": {
-    "name": "quran_app",
+    "name": "Warsh Al-Nafi'",
     "slug": "quran_app",
     "version": "1.0.0",
+    "scheme": "quranapp",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": false,
+      "bundleIdentifier": "com.warsh.quranapp",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "This app needs microphone access to record your Quran recitation for pronunciation feedback.",
+        "UIRequiresFullScreen": true
+      }
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#0A1628"
       },
-      "predictiveBackGestureEnabled": false
+      "package": "com.warsh.quranapp",
+      "permissions": [
+        "RECORD_AUDIO",
+        "READ_EXTERNAL_STORAGE"
+      ]
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#0A1628",
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200
+        }
+      ],
+
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#C9A84C"
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Allow Warsh Quran to access your microphone for recitation recording."
+        }
+      ],
+      "expo-sqlite",
+
+      "expo-secure-store"
+    ],
+    "experiments": {
+      "typedRoutes": true
     }
   }
 }
