@@ -1,6 +1,6 @@
-import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ActivityIndicator, ScrollView, Animated } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../../../src/constants/theme';
 import { useQuranStore } from '../../../src/store/quranStore';
 import { fetchVersesForSurah, ApiVerse } from '../../../src/services/quranApiService';
@@ -10,17 +10,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 interface OrderItem {
   id: number;
   text: string;
-  correctIndex: number; // The original position in the correct sequence
+  correctIndex: number;
 }
 
 function shuffleArray<T>(arr: T[]): T[] {
   const shuffled = [...arr];
-  // Fisher-Yates shuffle — but ensure it's actually shuffled
   for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
-  // If shuffle produced the original order, swap the first two
   const isOriginalOrder = shuffled.every((item, idx) => (item as any).correctIndex === idx);
   if (isOriginalOrder && shuffled.length >= 2) {
     [shuffled[0], shuffled[1]] = [shuffled[1], shuffled[0]];
@@ -29,7 +27,7 @@ function shuffleArray<T>(arr: T[]): T[] {
 }
 
 export default function VerseOrderingScreen() {
-  const { id } = useLocalSearchParams();
+  const { id, startVerse } = useLocalSearchParams();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const markCompleted = useQuranStore(state => state.markCompleted);
@@ -44,12 +42,18 @@ export default function VerseOrderingScreen() {
   const surahIdNum = id === 'random' ? 1 : parseInt(Array.isArray(id) ? id[0] : id ?? '1', 10);
   const surah = getSurahById(surahIdNum);
 
-  const [items, setItems] = useState<OrderItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [isCorrect, setIsCorrect] = useState(false);
+  
+  // Game State
+  const [originalVerses, setOriginalVerses] = useState<OrderItem[]>([]);
+  const [availableVerses, setAvailableVerses] = useState<OrderItem[]>([]);
+  const [placedVerses, setPlacedVerses] = useState<(OrderItem | null)[]>([]);
+  
+  // Validation State
   const [incorrectIndices, setIncorrectIndices] = useState<Set<number>>(new Set());
+  const [isCorrect, setIsCorrect] = useState(false);
+  const [flashCorrect, setFlashCorrect] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
   // Load verses and create challenge
   useEffect(() => {
@@ -61,99 +65,120 @@ export default function VerseOrderingScreen() {
         return;
       }
 
-      // Pick a range of 4 consecutive verses (or fewer if surah is short)
+      // Pick a range of 4 consecutive verses
       const count = Math.min(4, verses.length);
       const maxStart = verses.length - count;
-      const startIdx = Math.floor(Math.random() * (maxStart + 1));
+      
+      let startIdx;
+      if (startVerse) {
+        const startVerseStr = Array.isArray(startVerse) ? startVerse[0] : startVerse;
+        startIdx = parseInt(startVerseStr, 10) - 1;
+        startIdx = Math.max(0, Math.min(startIdx, maxStart));
+      } else {
+        startIdx = Math.floor(Math.random() * (maxStart + 1));
+      }
+      
       const selectedVerses = verses.slice(startIdx, startIdx + count);
 
-      // Create order items with correct indices
       const orderItems: OrderItem[] = selectedVerses.map((v, idx) => ({
         id: v.ayahNumber,
         text: v.text,
         correctIndex: idx,
       }));
 
-      // Shuffle them
       const shuffled = shuffleArray(orderItems);
-      setItems(shuffled);
+      
+      setOriginalVerses(orderItems);
+      setAvailableVerses(shuffled);
+      setPlacedVerses(Array(count).fill(null));
       setIsLoading(false);
     });
 
     return () => { cancelled = true; };
   }, [surahIdNum]);
 
-  // Tap to select, tap again to swap
-  const handleTap = useCallback((index: number) => {
-    if (isSubmitted) return;
+  // Handle placing a verse from available to the first empty slot
+  const placeVerse = (itemToPlace: OrderItem) => {
+    if (isCorrect) return; // Game over
 
-    if (selectedIndex === null) {
-      // First tap — select this item
-      setSelectedIndex(index);
-    } else if (selectedIndex === index) {
-      // Tapped the same item — deselect
-      setSelectedIndex(null);
-    } else {
-      // Second tap — swap the two items
-      setItems(prev => {
-        const newItems = [...prev];
-        [newItems[selectedIndex], newItems[index]] = [newItems[index], newItems[selectedIndex]];
-        return newItems;
-      });
-      setSelectedIndex(null);
+    const firstEmptyIdx = placedVerses.findIndex(v => v === null);
+    if (firstEmptyIdx === -1) return; // No empty slots
+
+    setAvailableVerses(prev => prev.filter(v => v.id !== itemToPlace.id));
+    setPlacedVerses(prev => {
+      const next = [...prev];
+      next[firstEmptyIdx] = itemToPlace;
+      return next;
+    });
+    
+    // Clear incorrect markings when changing
+    setIncorrectIndices(new Set());
+    setIsSubmitted(false);
+  };
+
+  // Handle removing a verse from a slot back to available
+  const removeVerse = (slotIndex: number) => {
+    if (isCorrect) return; // Game over
+    const itemToRemove = placedVerses[slotIndex];
+    if (!itemToRemove) return;
+
+    setPlacedVerses(prev => {
+      const next = [...prev];
+      next[slotIndex] = null;
+      return next;
+    });
+    
+    setAvailableVerses(prev => [...prev, itemToRemove]);
+    setIncorrectIndices(new Set());
+    setIsSubmitted(false);
+  };
+
+  // Auto-validate when all slots are filled
+  useEffect(() => {
+    if (placedVerses.length === 0) return;
+    const isFull = placedVerses.every(v => v !== null);
+    
+    if (isFull && !isSubmitted) {
+      validateOrder();
     }
-  }, [selectedIndex, isSubmitted]);
+  }, [placedVerses]);
 
-  // Move item up
-  const moveUp = useCallback((index: number) => {
-    if (isSubmitted || index === 0) return;
-    setItems(prev => {
-      const newItems = [...prev];
-      [newItems[index - 1], newItems[index]] = [newItems[index], newItems[index - 1]];
-      return newItems;
-    });
-    setSelectedIndex(null);
-  }, [isSubmitted]);
-
-  // Move item down
-  const moveDown = useCallback((index: number) => {
-    if (isSubmitted || index === items.length - 1) return;
-    setItems(prev => {
-      const newItems = [...prev];
-      [newItems[index], newItems[index + 1]] = [newItems[index + 1], newItems[index]];
-      return newItems;
-    });
-    setSelectedIndex(null);
-  }, [isSubmitted, items.length]);
-
-  const checkOrder = () => {
+  const validateOrder = () => {
     setIsSubmitted(true);
-    setSelectedIndex(null);
-
-    // Check if every item is in its correct position
-    const wrong = new Set<number>();
     let allCorrect = true;
-    items.forEach((item, idx) => {
-      if (item.correctIndex !== idx) {
-        wrong.add(idx);
+    const wrong = new Set<number>();
+
+    placedVerses.forEach((item, index) => {
+      if (item && item.correctIndex !== index) {
         allCorrect = false;
+        wrong.add(index);
       }
     });
 
     setIncorrectIndices(wrong);
-    setIsCorrect(allCorrect);
 
     if (allCorrect) {
-      markCompleted(surahIdNum, 1, 100); // 100 XP
+      setIsCorrect(true);
+      setFlashCorrect(true);
+      markCompleted(surahIdNum, 1, 100);
+      
+      // Flash green for 1 second, then turn it off
+      setTimeout(() => {
+        setFlashCorrect(false);
+      }, 1000);
     }
   };
 
   const retry = () => {
     setIsSubmitted(false);
     setIsCorrect(false);
+    setFlashCorrect(false);
     setIncorrectIndices(new Set());
-    setSelectedIndex(null);
-    setItems(prev => shuffleArray([...prev]));
+    
+    // Move everything back to available and shuffle
+    const allItems = [...availableVerses, ...placedVerses.filter(v => v !== null) as OrderItem[]];
+    setAvailableVerses(shuffleArray(allItems));
+    setPlacedVerses(Array(originalVerses.length).fill(null));
   };
 
   if (isLoading) {
@@ -165,7 +190,7 @@ export default function VerseOrderingScreen() {
     );
   }
 
-  if (items.length === 0) {
+  if (originalVerses.length === 0) {
     return (
       <View style={[styles.container, styles.centerContent]}>
         <Text style={styles.loadingText}>تعذر تحميل الآيات. تحقق من اتصالك.</Text>
@@ -181,79 +206,79 @@ export default function VerseOrderingScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>ترتيب الآيات</Text>
         <Text style={styles.subtitle}>
-          رتب هذه الآيات من {surah?.nameArabic ?? 'القرآن الكريم'} بالتسلسل الصحيح.
-          {'\n'}اضغط على آية لتحديدها، ثم اضغط على أخرى للتبديل.
+          رتب الآيات بالتسلسل الصحيح.
+          {'\n'}اضغط على الآية بالأسفل لوضعها في المكان المناسب.
         </Text>
       </View>
 
-      <View style={styles.listArea}>
-        {items.map((item, index) => {
-          const isSelected = selectedIndex === index;
+      {/* Top Area: The Slots */}
+      <ScrollView 
+        style={styles.slotsAreaContainer} 
+        contentContainerStyle={styles.slotsAreaContent}
+      >
+        {placedVerses.map((item, index) => {
           const isWrong = isSubmitted && incorrectIndices.has(index);
-          const isRight = isSubmitted && !incorrectIndices.has(index);
+          const isFlash = flashCorrect;
 
           return (
             <Pressable
-              key={item.id}
+              key={`slot-${index}`}
               style={[
-                styles.ayahCard,
-                isSelected && styles.ayahCardSelected,
-                isRight && styles.ayahCardCorrect,
-                isWrong && styles.ayahCardIncorrect,
+                styles.slotCard,
+                item && styles.slotCardFilled,
+                isWrong && styles.slotCardIncorrect,
+                isFlash && styles.slotCardFlash,
               ]}
-              onPress={() => handleTap(index)}
+              onPress={() => removeVerse(index)}
             >
-              {/* Reorder arrows */}
-              {!isSubmitted && (
-                <View style={styles.arrowColumn}>
-                  <Pressable
-                    onPress={() => moveUp(index)}
-                    disabled={index === 0}
-                    style={[styles.arrowBtn, index === 0 && styles.arrowBtnDisabled]}
-                  >
-                    <Text style={styles.arrowText}>▲</Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={() => moveDown(index)}
-                    disabled={index === items.length - 1}
-                    style={[styles.arrowBtn, index === items.length - 1 && styles.arrowBtnDisabled]}
-                  >
-                    <Text style={styles.arrowText}>▼</Text>
-                  </Pressable>
-                </View>
+              {item ? (
+                <Text style={[styles.ayahText, isFlash && styles.ayahTextFlash]}>
+                  {item.text}
+                </Text>
+              ) : (
+                <Text style={styles.slotPlaceholderText}>
+                  الآية {index + 1}
+                </Text>
               )}
-
-              {/* Status icon after submission */}
-              {isSubmitted && (
-                <View style={styles.statusIcon}>
-                  <Text style={{ fontSize: 18 }}>{isRight ? '✅' : '❌'}</Text>
-                </View>
+              {item && !isCorrect && (
+                <Text style={styles.removeIcon}>×</Text>
               )}
-
-              <Text style={[
-                styles.ayahText,
-                isSelected && styles.ayahTextSelected,
-                (isRight || isWrong) && styles.ayahTextSubmitted,
-              ]}>
-                {item.text}
-              </Text>
             </Pressable>
           );
         })}
-      </View>
+      </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, Spacing.lg) }]}>
-        {isSubmitted ? (
+      {/* Bottom Area: Available Verses */}
+      {!isCorrect && (
+        <View style={[styles.bottomTray, { paddingBottom: Math.max(insets.bottom, Spacing.lg) }]}>
+          <Text style={styles.trayTitle}>الآيات المتاحة:</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.trayContent}>
+            {availableVerses.map((item) => (
+              <Pressable
+                key={`avail-${item.id}`}
+                style={styles.availableCard}
+                onPress={() => placeVerse(item)}
+              >
+                <Text style={styles.availableText}>{item.text}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+      )}
+
+      {/* Success/Retry Footer overlay (shows when complete or stuck) */}
+      {isSubmitted && (
+        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, Spacing.lg) }]}>
           <View style={styles.resultSection}>
             {isCorrect ? (
               <Text style={styles.successText}>صحيح! +100 نقطة 🌟</Text>
             ) : (
-              <Text style={styles.failText}>خطأ، حاول مرة أخرى!</Text>
+              <Text style={styles.failText}>هناك أخطاء في الترتيب، تفقد الآيات المحددة بالأحمر.</Text>
             )}
             <View style={styles.footerButtons}>
               {!isCorrect && (
                 <Pressable style={[styles.button, styles.flexButton, styles.retryButton]} onPress={retry}>
-                  <Text style={styles.buttonText}>حاول مرة أخرى</Text>
+                  <Text style={styles.buttonText}>إعادة الترتيب</Text>
                 </Pressable>
               )}
               {isCorrect ? (
@@ -267,12 +292,8 @@ export default function VerseOrderingScreen() {
               )}
             </View>
           </View>
-        ) : (
-          <Pressable style={styles.button} onPress={checkOrder}>
-            <Text style={styles.buttonText}>تأكيد الترتيب</Text>
-          </Pressable>
-        )}
-      </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -310,71 +331,99 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
     lineHeight: 20,
   },
-  listArea: {
+  slotsAreaContainer: {
     flex: 1,
+  },
+  slotsAreaContent: {
     padding: Spacing.md,
+    gap: Spacing.md,
+    paddingBottom: Spacing.xxl,
+  },
+  slotCard: {
+    minHeight: 80,
+    backgroundColor: 'rgba(0,0,0,0.03)',
+    borderWidth: 2,
+    borderColor: 'rgba(0,0,0,0.1)',
+    borderStyle: 'dashed',
+    borderRadius: BorderRadius.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.md,
+    position: 'relative',
+  },
+  slotCardFilled: {
+    backgroundColor: Colors.bgCard,
+    borderStyle: 'solid',
+    borderColor: Colors.surface,
+    ...Shadow.card,
+  },
+  slotCardIncorrect: {
+    backgroundColor: '#FFEBEE',
+    borderColor: Colors.error,
+    borderStyle: 'solid',
+  },
+  slotCardFlash: {
+    backgroundColor: '#4CAF50',
+    borderColor: '#388E3C',
+    borderStyle: 'solid',
+  },
+  slotPlaceholderText: {
+    color: Colors.textMuted,
+    fontSize: Typography.heading3,
+    fontWeight: 'bold',
+  },
+  ayahText: {
+    fontFamily: Typography.quranFont,
+    fontSize: Typography.ayahSm,
+    textAlign: 'center',
+    color: Colors.textPrimary,
+    lineHeight: 34,
+  },
+  ayahTextFlash: {
+    color: '#FFFFFF',
+  },
+  removeIcon: {
+    position: 'absolute',
+    top: 4,
+    left: 8,
+    fontSize: 20,
+    color: Colors.textMuted,
+  },
+  bottomTray: {
+    backgroundColor: Colors.surface,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.1)',
+    paddingTop: Spacing.sm,
+  },
+  trayTitle: {
+    fontSize: Typography.caption,
+    color: Colors.textSecondary,
+    paddingHorizontal: Spacing.md,
+    marginBottom: Spacing.sm,
+    fontWeight: 'bold',
+  },
+  trayContent: {
+    paddingHorizontal: Spacing.md,
     gap: Spacing.sm,
   },
-  ayahCard: {
-    flexDirection: 'row',
+  availableCard: {
     backgroundColor: Colors.bgCard,
     padding: Spacing.md,
     borderRadius: BorderRadius.md,
-    alignItems: 'center',
-    ...Shadow.card,
-  },
-  ayahCardSelected: {
-    backgroundColor: Colors.primaryLight,
-    borderWidth: 2,
-    borderColor: Colors.gold,
-  },
-  ayahCardCorrect: {
-    backgroundColor: '#E8F5E9',
-    borderWidth: 2,
-    borderColor: Colors.success,
-  },
-  ayahCardIncorrect: {
-    backgroundColor: '#FFEBEE',
-    borderWidth: 2,
-    borderColor: Colors.error,
-  },
-  arrowColumn: {
-    marginRight: Spacing.sm,
-    gap: 4,
-  },
-  arrowBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: Colors.surface,
+    maxWidth: 250,
+    minWidth: 150,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.primaryLight,
+    ...Shadow.sm,
   },
-  arrowBtnDisabled: {
-    opacity: 0.3,
-  },
-  arrowText: {
-    fontSize: 12,
-    color: Colors.textSecondary,
-  },
-  statusIcon: {
-    marginRight: Spacing.sm,
-    width: 28,
-    alignItems: 'center',
-  },
-  ayahText: {
-    flex: 1,
+  availableText: {
     fontFamily: Typography.quranFont,
-    fontSize: Typography.ayahSm,
-    textAlign: 'right',
-    color: Colors.textPrimary,
-    lineHeight: 40,
-  },
-  ayahTextSelected: {
-    color: Colors.textLight,
-  },
-  ayahTextSubmitted: {
-    color: Colors.textPrimary,
+    fontSize: Typography.body,
+    textAlign: 'center',
+    color: Colors.primaryDark,
+    lineHeight: 28,
   },
   footer: {
     padding: Spacing.lg,
@@ -393,7 +442,8 @@ const styles = StyleSheet.create({
   },
   failText: {
     color: Colors.error,
-    fontSize: Typography.heading3,
+    fontSize: Typography.body,
+    textAlign: 'center',
     fontWeight: 'bold',
     marginBottom: Spacing.md,
   },
@@ -413,7 +463,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   retryButton: {
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: Colors.primaryDark,
   },
   buttonText: {
     color: Colors.textLight,

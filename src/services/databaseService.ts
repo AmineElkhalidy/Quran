@@ -150,17 +150,62 @@ export function addXP(amount: number): void {
   db.runSync('UPDATE user_stats SET total_xp = total_xp + ? WHERE id = 1', [amount]);
 }
 
+// Level computation: each level requires more XP
+// Level 1: 0 XP, Level 2: 500 XP, Level 3: 1200 XP, Level 4: 2100 XP...
+// Formula: cumulative XP for level N = sum of (i * 300 + 200) for i = 1..N-1
+function computeLevelFromXP(totalXP: number): { level: number; xpToNextLevel: number; xpInCurrentLevel: number } {
+  let level = 1;
+  let cumulativeXP = 0;
+
+  while (true) {
+    const xpForNextLevel = level * 300 + 200;
+    if (cumulativeXP + xpForNextLevel > totalXP) {
+      return {
+        level,
+        xpToNextLevel: xpForNextLevel,
+        xpInCurrentLevel: totalXP - cumulativeXP,
+      };
+    }
+    cumulativeXP += xpForNextLevel;
+    level++;
+  }
+}
+
 export function getUserStats() {
   const db = getDB();
-  return db.getFirstSync<{
+  const row = db.getFirstSync<{
     total_xp: number; level: number; current_streak: number;
     longest_streak: number; last_active_date: string; total_days_active: number;
   }>('SELECT * FROM user_stats WHERE id = 1');
+
+  if (!row) return null;
+
+  // Compute level from total XP
+  const levelInfo = computeLevelFromXP(row.total_xp);
+
+  // Update level in DB if changed
+  if (levelInfo.level !== row.level) {
+    db.runSync('UPDATE user_stats SET level = ? WHERE id = 1', [levelInfo.level]);
+  }
+
+  return {
+    total_xp: row.total_xp,
+    level: levelInfo.level,
+    xp_to_next_level: levelInfo.xpToNextLevel,
+    xp_in_current_level: levelInfo.xpInCurrentLevel,
+    current_streak: row.current_streak,
+    longest_streak: row.longest_streak,
+    last_active_date: row.last_active_date,
+    total_days_active: row.total_days_active,
+  };
 }
 
 export function updateStreak(): void {
   const db = getDB();
-  const stats = getUserStats();
+  const stats = db.getFirstSync<{
+    current_streak: number; longest_streak: number;
+    last_active_date: string; total_days_active: number;
+  }>('SELECT current_streak, longest_streak, last_active_date, total_days_active FROM user_stats WHERE id = 1');
   if (!stats) return;
 
   const today = new Date().toDateString();
@@ -182,6 +227,30 @@ export function updateStreak(): void {
     WHERE id = 1`,
     [newStreak, newStreak, new Date().toISOString()]
   );
+}
+
+// ─── Last Read Progress ──────────────────────────────────────────────────────
+
+export function getLastReadProgress(): { surahId: number; thumnNumber: number; lastReadAt: string } | null {
+  const db = getDB();
+  const row = db.getFirstSync<{
+    surah_id: number; thumn_number: number; last_read_at: string;
+  }>('SELECT surah_id, thumn_number, last_read_at FROM user_progress WHERE last_read_at IS NOT NULL ORDER BY last_read_at DESC LIMIT 1');
+
+  if (!row) return null;
+  return {
+    surahId: row.surah_id,
+    thumnNumber: row.thumn_number,
+    lastReadAt: row.last_read_at,
+  };
+}
+
+export function getTotalThumnCompleted(): number {
+  const db = getDB();
+  const row = db.getFirstSync<{ count: number }>(
+    'SELECT COUNT(*) as count FROM user_progress WHERE completed = 1'
+  );
+  return row?.count ?? 0;
 }
 
 // ─── Challenge Results ────────────────────────────────────────────────────────

@@ -1,17 +1,20 @@
 import { View, Text, StyleSheet, ActivityIndicator, FlatList, Dimensions, Pressable, Switch, ScrollView } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
-import { useState, useEffect } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useState, useEffect, useCallback } from 'react';
 import { Colors, Typography, Spacing, BorderRadius } from '../../src/constants/theme';
 import { getSurahById } from '../../src/constants/surahList';
 import { AthmanProgress } from '../../src/components/AthmanProgress';
 import { AudioControls } from '../../src/components/AudioControls';
+import { VerseActionsSheet } from '../../src/components/VerseActionsSheet';
 import { calculateThumnBoundaries } from '../../src/constants/athmanBoundaries';
 import { fetchVersesForSurah, ApiVerse } from '../../src/services/quranApiService';
+import type { Thumn } from '../../src/types';
 
 const { width } = Dimensions.get('window');
 
 export default function SurahReaderScreen() {
   const { surahId } = useLocalSearchParams();
+  const router = useRouter();
   const id = parseInt(Array.isArray(surahId) ? surahId[0] : surahId ?? '1', 10);
   
   const surah = getSurahById(id);
@@ -23,6 +26,10 @@ export default function SurahReaderScreen() {
   const [currentThumnIndex, setCurrentThumnIndex] = useState(0);
   const [isTestMode, setIsTestMode] = useState(false);
   const [revealedAyahs, setRevealedAyahs] = useState<Record<number, boolean>>({});
+
+  // Verse actions sheet state
+  const [selectedVerse, setSelectedVerse] = useState<ApiVerse | null>(null);
+  const [isSheetVisible, setIsSheetVisible] = useState(false);
 
   const thumns = calculateThumnBoundaries(id);
   
@@ -53,56 +60,93 @@ export default function SurahReaderScreen() {
 
   const showBismillah = id !== 9;
 
-  const toggleAyahReveal = (ayahNumber: number) => {
-    if (!isTestMode) return;
-    setRevealedAyahs(prev => ({
-      ...prev,
-      [ayahNumber]: !prev[ayahNumber]
-    }));
-  };
+  const handleVerseLongPress = useCallback((verse: ApiVerse) => {
+    setSelectedVerse(verse);
+    setIsSheetVisible(true);
+  }, []);
 
-  const renderThumn = ({ item }: { item: any }) => {
+  const handleCloseSheet = useCallback(() => {
+    setIsSheetVisible(false);
+    setTimeout(() => setSelectedVerse(null), 350);
+  }, []);
+
+  const handleShowTafsir = useCallback((verse: ApiVerse) => {
+    router.push(`/tafsir/${verse.surahId}/${verse.ayahNumber}` as any);
+  }, [router]);
+
+  // Each thumn page renders its own AudioControls with its own correct ayah range.
+  // This completely eliminates all scroll-tracking complexity.
+  const renderThumn = ({ item }: { item: Thumn }) => {
     const thumnVerses = verses.filter(v => v.ayahNumber >= item.startAyah && v.ayahNumber <= item.endAyah);
     
     return (
-      <ScrollView style={{ width }} contentContainerStyle={{ padding: Spacing.md }}>
-        <Text style={styles.thumnLabel}>{item.label}</Text>
-        
-        <View style={styles.testModeToggle}>
-          <Text style={styles.testModeLabel}>اختبر حفظك</Text>
-          <Switch 
-            value={isTestMode} 
-            onValueChange={setIsTestMode}
-            trackColor={{ false: Colors.surface, true: Colors.gold }}
-            thumbColor={isTestMode ? Colors.primary : Colors.textMuted}
-          />
-        </View>
+      <View style={{ width, flex: 1 }}>
+        <ScrollView contentContainerStyle={{ padding: Spacing.md, paddingBottom: 16 }}>
+          <Text style={styles.thumnLabel}>{item.label}</Text>
+          
+          <View style={styles.testModeToggle}>
+            <Text style={styles.testModeLabel}>اختبر حفظك</Text>
+            <Switch 
+              value={isTestMode} 
+              onValueChange={setIsTestMode}
+              trackColor={{ false: Colors.surface, true: Colors.gold }}
+              thumbColor={isTestMode ? Colors.primary : Colors.textMuted}
+            />
+          </View>
 
-        {showBismillah && item.startAyah === 1 && (
-          <Text style={styles.bismillah}>بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</Text>
-        )}
-        
-        <View style={styles.versesFlow}>
-          {thumnVerses.map(verse => {
-            const isHidden = isTestMode && !revealedAyahs[verse.ayahNumber];
-            return (
-              <Pressable 
-                key={verse.ayahNumber} 
-                onPress={() => toggleAyahReveal(verse.ayahNumber)}
-                style={[styles.verseTextContainer, isHidden && styles.verseHidden]}
-              >
-                {isHidden ? (
-                  <Text style={styles.hiddenTextPlaceholder}>انقر لإظهار الآية {verse.ayahNumber}</Text>
-                ) : (
-                  <Text style={styles.verseText}>
-                    {verse.text} <Text style={styles.ayahNumberBadge}>﴿ {verse.ayahNumber} ﴾</Text>
-                  </Text>
-                )}
-              </Pressable>
-            );
-          })}
-        </View>
-      </ScrollView>
+          {showBismillah && item.startAyah === 1 && (
+            <Text style={styles.bismillah}>بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</Text>
+          )}
+          
+          <View style={styles.versesFlow}>
+            {thumnVerses.map(verse => {
+              const isHidden = isTestMode && !revealedAyahs[verse.ayahNumber];
+              const isSelected = selectedVerse?.ayahNumber === verse.ayahNumber;
+              return (
+                <Pressable 
+                  key={verse.ayahNumber} 
+                  onPress={() => {
+                    if (isTestMode) {
+                      setRevealedAyahs(prev => ({ ...prev, [verse.ayahNumber]: !prev[verse.ayahNumber] }));
+                    }
+                  }}
+                  onLongPress={() => handleVerseLongPress(verse)}
+                  delayLongPress={400}
+                  style={[
+                    styles.verseTextContainer, 
+                    isHidden && styles.verseHidden,
+                    isSelected && styles.verseSelected,
+                  ]}
+                >
+                  {isHidden ? (
+                    <Text style={styles.hiddenTextPlaceholder}>انقر لإظهار الآية {verse.ayahNumber}</Text>
+                  ) : (
+                    <Text style={styles.verseText}>
+                      {verse.text} <Text style={styles.ayahNumberBadge}>﴿ {verse.ayahNumber} ﴾</Text>
+                    </Text>
+                  )}
+                </Pressable>
+              );
+            })}
+          </View>
+
+          {!isTestMode && (
+            <Text style={styles.longPressHint}>اضغط مطولاً على أي آية لعرض الخيارات</Text>
+          )}
+        </ScrollView>
+
+        {/* 
+          AudioControls lives INSIDE each thumn page.
+          startAyah/endAyah are always correct for this specific page — 
+          no scroll tracking needed whatsoever.
+        */}
+        <AudioControls 
+          surahId={id}
+          startAyah={item.startAyah}
+          endAyah={item.endAyah}
+          totalAyahs={surah?.verseCount ?? 0}
+        />
+      </View>
     );
   };
 
@@ -110,7 +154,7 @@ export default function SurahReaderScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.arabicName}>{surah.nameArabic}</Text>
-        <Text style={styles.meta}>{surah.revelationType === 'Meccan' ? 'مكية' : 'مدنية'} • {surah.verseCount} آية</Text>
+        <Text style={styles.meta}>{surah.revelationType === 'Makki' ? 'مكية' : 'مدنية'} • {surah.verseCount} آية</Text>
         
         <View style={styles.athmanContainer}>
           <AthmanProgress completedThumns={completedThumns} currentThumn={currentThumn?.thumnNumber || 1} />
@@ -136,21 +180,26 @@ export default function SurahReaderScreen() {
           pagingEnabled
           showsHorizontalScrollIndicator={false}
           onMomentumScrollEnd={(e) => {
+            // Only update thumn index for the AthmanProgress header indicator.
+            // Audio is driven per-page, so this doesn't affect playback correctness.
             const newIndex = Math.round(e.nativeEvent.contentOffset.x / width);
-            if (newIndex !== currentThumnIndex) {
-              setCurrentThumnIndex(newIndex);
-              setRevealedAyahs({}); // Reset memory test when switching thumn
+            const clamped = Math.max(0, Math.min(newIndex, thumns.length - 1));
+            if (clamped !== currentThumnIndex) {
+              setCurrentThumnIndex(clamped);
+              setRevealedAyahs({});
             }
           }}
           style={styles.readerArea}
         />
       )}
       
-      {/* Pass the first ayah of the current thumn to the audio controls */}
-      <AudioControls 
-        surahId={id} 
-        ayahNumber={currentThumn?.startAyah || 1}
-        totalAyahs={surah.verseCount}
+      {/* Verse actions bottom sheet */}
+      <VerseActionsSheet
+        visible={isSheetVisible}
+        verse={selectedVerse}
+        surahNameArabic={surah.nameArabic}
+        onClose={handleCloseSheet}
+        onShowTafsir={handleShowTafsir}
       />
     </View>
   );
@@ -172,12 +221,14 @@ const styles = StyleSheet.create({
   testModeToggle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.md, backgroundColor: Colors.surface, padding: Spacing.sm, borderRadius: BorderRadius.md },
   testModeLabel: { marginRight: Spacing.sm, fontSize: Typography.body, fontWeight: 'bold', color: Colors.textPrimary },
   bismillah: { fontFamily: Typography.quranFont, fontSize: Typography.ayahMd, textAlign: 'center', color: Colors.textPrimary, marginVertical: Spacing.lg },
-  versesFlow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', paddingBottom: 40 },
-  verseTextContainer: { marginHorizontal: 4, marginVertical: 8 },
+  versesFlow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', paddingBottom: 16 },
+  verseTextContainer: { marginHorizontal: 4, marginVertical: 8, borderRadius: BorderRadius.sm, padding: 4 },
   verseText: { fontFamily: Typography.quranFont, fontSize: Typography.ayahMd, color: Colors.textPrimary, lineHeight: 45, textAlign: 'center' },
   ayahNumberBadge: { color: Colors.goldDark, fontSize: Typography.heading3 },
+  verseSelected: { backgroundColor: 'rgba(201, 168, 76, 0.15)', borderRadius: BorderRadius.md },
   verseHidden: { backgroundColor: Colors.surface, borderRadius: BorderRadius.md, padding: Spacing.sm, alignItems: 'center', justifyContent: 'center', minWidth: 100 },
   hiddenTextPlaceholder: { color: Colors.textMuted, fontSize: Typography.caption },
+  longPressHint: { textAlign: 'center', color: Colors.textMuted, fontSize: Typography.caption, marginTop: Spacing.sm, fontStyle: 'italic' },
   placeholderContainer: { alignItems: 'center', padding: Spacing.xl },
   placeholderIcon: { fontSize: 48, marginBottom: Spacing.md },
   placeholderText: { fontSize: Typography.body, color: Colors.textSecondary, textAlign: 'center' },

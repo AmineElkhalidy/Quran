@@ -2,26 +2,31 @@ import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../constants/theme';
 import { audioService } from '../services/audioService';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'expo-router';
 
 interface AudioControlsProps {
   surahId: number;
-  ayahNumber: number;
+  startAyah: number;
+  endAyah: number;
   totalAyahs: number;
 }
 
 export function AudioControls({ 
   surahId, 
-  ayahNumber, 
+  startAyah,
+  endAyah,
   totalAyahs 
 }: AudioControlsProps) {
   const [isPlaying, setIsPlaying] = useState(false);
+  const router = useRouter();
 
-  // Stop playback when ayah changes
+  // Stop playback when thumn changes
   useEffect(() => {
     return () => {
       audioService.stopPlayback();
+      setIsPlaying(false);
     };
-  }, [surahId, ayahNumber]);
+  }, [surahId, startAyah, endAyah]);
 
   const togglePlayback = async () => {
     if (isPlaying) {
@@ -29,38 +34,37 @@ export function AudioControls({
       setIsPlaying(false);
     } else {
       setIsPlaying(true);
-      await audioService.playWarshAudio(surahId, ayahNumber, () => {
+      await audioService.playAyahRange(surahId, startAyah, endAyah, () => {
         setIsPlaying(false);
       });
     }
   };
 
-  const handlePractice = async () => {
-    await audioService.startRecording();
+  const handleOrder = () => {
+    router.push(`/challenges/verse-ordering/${surahId}?startVerse=${startAyah}` as any);
   };
 
   return (
     <View style={styles.container}>
-      {/* Audio Controls Row */}
       <View style={styles.controlsRow}>
         {/* Play Warsh Recitation */}
         <Pressable 
-          style={[styles.playButton, isPlaying && styles.playButtonActive]}
+          style={[styles.actionButton, isPlaying && styles.actionButtonActive]}
           onPress={togglePlayback}
         >
           <Text style={styles.icon}>{isPlaying ? '⏸' : '▶️'}</Text>
-          <Text style={styles.label}>{isPlaying ? 'إيقاف مؤقت' : 'تشغيل'}</Text>
+          <Text style={[styles.label, isPlaying && styles.labelActive]}>
+            {isPlaying ? 'إيقاف مؤقت' : 'تشغيل'}
+          </Text>
         </Pressable>
 
-        {/* Practice (Record) */}
+        {/* Order Verses Challenge */}
         <Pressable 
-          style={styles.recordButtonContainer}
-          onPress={handlePractice}
+          style={styles.actionButton}
+          onPress={handleOrder}
         >
-          <View style={styles.recordButton}>
-            <Text style={styles.icon}>🎙️</Text>
-          </View>
-          <Text style={styles.label}>تدريب</Text>
+          <Text style={styles.icon}>🧩</Text>
+          <Text style={styles.label}>ترتيب الآيات</Text>
         </Pressable>
       </View>
     </View>
@@ -76,40 +80,30 @@ const styles = StyleSheet.create({
   },
   controlsRow: {
     flexDirection: 'row',
-    justifyContent: 'space-evenly',
-    alignItems: 'center',
+    gap: Spacing.md,
   },
-  playButton: {
+  actionButton: {
+    flex: 1,
     alignItems: 'center',
-    padding: Spacing.sm,
+    justifyContent: 'center',
+    padding: Spacing.md,
     backgroundColor: Colors.surface,
     borderRadius: BorderRadius.md,
-    minWidth: 100,
-  },
-  playButtonActive: {
-    backgroundColor: Colors.primaryLight,
-  },
-  recordButtonContainer: {
-    alignItems: 'center',
-    minWidth: 100,
-  },
-  recordButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: Colors.error,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 4,
     ...Shadow.card,
+  },
+  actionButtonActive: {
+    backgroundColor: Colors.primaryLight,
   },
   icon: {
     fontSize: 24,
+    marginBottom: 4,
   },
   label: {
     fontSize: Typography.caption,
     color: Colors.textSecondary,
-    marginTop: 4,
     fontWeight: '600',
+  },
+  labelActive: {
+    color: Colors.textLight,
   },
 });

@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ActivityIndicator, ScrollView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState, useEffect } from 'react';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../../../src/constants/theme';
@@ -126,48 +126,50 @@ export default function ListeningChallengeScreen() {
         <Text style={styles.subtitle}>استمع إلى التلاوة برواية ورش وتعرف على الآية الصحيحة من {surah?.nameArabic ?? 'القرآن الكريم'}.</Text>
       </View>
 
-      <View style={styles.audioSection}>
-        <Pressable 
-          style={[styles.playButton, isPlaying && styles.playButtonActive]} 
-          onPress={togglePlay}
-        >
-          <Text style={styles.playIcon}>{isPlaying ? '🔊' : '▶️'}</Text>
-        </Pressable>
-        <Text style={styles.audioLabel}>
-          {isPlaying ? 'جاري تشغيل الآية...' : 'اضغط للاستماع'}
-        </Text>
-      </View>
+      <ScrollView style={styles.scrollArea} contentContainerStyle={styles.scrollContent}>
+        <View style={styles.audioSection}>
+          <Pressable 
+            style={[styles.playButton, isPlaying && styles.playButtonActive]} 
+            onPress={togglePlay}
+          >
+            <Text style={styles.playIcon}>{isPlaying ? '🔊' : '▶️'}</Text>
+          </Pressable>
+          <Text style={styles.audioLabel}>
+            {isPlaying ? 'جاري تشغيل الآية...' : 'اضغط للاستماع'}
+          </Text>
+        </View>
 
-      <View style={styles.optionsList}>
-        {options.map((option) => {
-          const isSelected = selectedOption === option.id;
-          const showCorrect = isSubmitted && option.isCorrect;
-          const showIncorrect = isSubmitted && isSelected && !option.isCorrect;
+        <View style={styles.optionsList}>
+          {options.map((option) => {
+            const isSelected = selectedOption === option.id;
+            const showCorrect = isSubmitted && option.isCorrect;
+            const showIncorrect = isSubmitted && isSelected && !option.isCorrect;
 
-          return (
-            <Pressable
-              key={option.id}
-              style={[
-                styles.optionCard,
-                isSelected && styles.optionSelected,
-                showCorrect && styles.optionCorrect,
-                showIncorrect && styles.optionIncorrect,
-              ]}
-              onPress={() => handleSelect(option.id)}
-            >
-              <Text style={[
-                styles.optionText,
-                (showCorrect || showIncorrect || isSelected) && styles.optionTextLight
-              ]}>
-                {option.label}
-              </Text>
-              
-              {showCorrect && <Text style={styles.resultIcon}>✅</Text>}
-              {showIncorrect && <Text style={styles.resultIcon}>❌</Text>}
-            </Pressable>
-          );
-        })}
-      </View>
+            return (
+              <Pressable
+                key={option.id}
+                style={[
+                  styles.optionCard,
+                  isSelected && styles.optionSelected,
+                  showCorrect && styles.optionCorrect,
+                  showIncorrect && styles.optionIncorrect,
+                ]}
+                onPress={() => handleSelect(option.id)}
+              >
+                <Text style={[
+                  styles.optionText,
+                  (showCorrect || showIncorrect || isSelected) && styles.optionTextLight
+                ]}>
+                  {option.label}
+                </Text>
+                
+                {showCorrect && <Text style={styles.resultIcon}>✅</Text>}
+                {showIncorrect && <Text style={styles.resultIcon}>❌</Text>}
+              </Pressable>
+            );
+          })}
+        </View>
+      </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, Spacing.lg) }]}>
         {isSubmitted ? (
@@ -256,10 +258,16 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
     fontWeight: '500',
   },
-  optionsList: {
+  scrollArea: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  optionsList: {
     padding: Spacing.md,
     gap: Spacing.md,
+    paddingBottom: Spacing.lg,
   },
   optionCard: {
     backgroundColor: Colors.bgCard,

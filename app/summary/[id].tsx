@@ -28,7 +28,7 @@ export default function SurahSummaryScreen() {
         <View style={styles.metaCard}>
           <Text style={styles.metaIcon}>📍</Text>
           <Text style={styles.metaLabel}>النزول</Text>
-          <Text style={styles.metaValue}>{surah.revelationType === 'Meccan' ? 'مكية' : 'مدنية'}</Text>
+          <Text style={styles.metaValue}>{surah.revelationType === 'Makki' ? 'مكية' : 'مدنية'}</Text>
         </View>
         <View style={styles.metaCard}>
           <Text style={styles.metaIcon}>🔢</Text>
@@ -51,7 +51,7 @@ export default function SurahSummaryScreen() {
       <View style={styles.contentSection}>
         <Text style={styles.sectionTitleArabic}>أسباب النزول</Text>
         <Text style={styles.summaryTextArabic}>
-          {surah.asbabNuzul || "توجيهات عامة نزلت على النبي ﷺ في الفترة الـ" + (surah.revelationType === 'Meccan' ? 'مكية' : 'مدنية') + "."}
+          {surah.asbabNuzul || "توجيهات عامة نزلت على النبي ﷺ في الفترة الـ" + (surah.revelationType === 'Makki' ? 'مكية' : 'مدنية') + "."}
         </Text>
       </View>
       

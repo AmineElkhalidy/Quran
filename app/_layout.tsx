@@ -65,6 +65,7 @@ export default function RootLayout() {
       <Stack.Screen name="challenges/fill-blank/[id]" options={{ title: 'أكمل الفراغ' }} />
       <Stack.Screen name="challenges/listening/[id]" options={{ title: 'اختبار الاستماع' }} />
       <Stack.Screen name="challenges/verse-ordering/[id]" options={{ title: 'ترتيب الآيات' }} />
+      <Stack.Screen name="tafsir/[surahId]/[ayahNumber]" options={{ title: 'التفسير' }} />
     </Stack>
   );
 }
