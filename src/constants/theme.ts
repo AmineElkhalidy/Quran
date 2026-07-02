@@ -41,6 +41,10 @@ export const Colors = {
   fillBlank: '#0D5C63',
   listening: '#2C7A7B',
   warshQuiz: '#C9A84C',
+  surahId: '#DD6B20',       // Orange — Identify the Surah
+  verseComplete: '#805AD5', // Purple — Complete the Verse
+  surahQuiz: '#2B6CB0',    // Blue — Surah Knowledge Quiz
+  trueFalse: '#276749',    // Green — True or False
 
   // Reward tiers
   bronze: '#CD7F32',

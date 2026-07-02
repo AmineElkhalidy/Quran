@@ -23,7 +23,9 @@
       "package": "com.warsh.quranapp",
       "permissions": [
         "RECORD_AUDIO",
-        "READ_EXTERNAL_STORAGE"
+        "READ_EXTERNAL_STORAGE",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
       ]
     },
     "web": {
@@ -41,7 +43,6 @@
           "imageWidth": 300
         }
       ],
-
       [
         "expo-notifications",
         {
@@ -56,11 +57,17 @@
         }
       ],
       "expo-sqlite",
-
       "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "bbe4ec30-1f3a-4c3e-acff-ef8d86a49b7d"
+      }
+    },
+    "owner": "amineelkhalidy"
   }
 }

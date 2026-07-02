@@ -2,37 +2,43 @@ import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../../src/constants/theme';
 import { getSurahById } from '../../src/constants/surahList';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function SurahSummaryScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
-  
+  const insets = useSafeAreaInsets();
+
   const surahId = parseInt(Array.isArray(id) ? id[0] : id ?? '1', 10);
   const surah = getSurahById(surahId);
 
-  if (!surah) return <Text>Surah not found</Text>;
+  if (!surah) return <Text style={styles.notFound}>السورة غير موجودة</Text>;
+
+  const revelationLabel = surah.revelationType === 'Makki' ? 'مكية' : 'مدنية';
+  const summaryText = surah.summaryArabic || `سورة ${surah.nameArabic} من السور ${revelationLabel} التي نزلت في عهد النبي ﷺ.`;
+  const asbabText = surah.asbabNuzul || `توجيهات عامة نزلت على النبي ﷺ في الفترة ال${revelationLabel}.`;
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.headerTop}>
-          <Pressable onPress={() => router.back()} style={styles.backBtn}>
-            <Text style={styles.backText}>العودة →</Text>
-          </Pressable>
-          <Text style={styles.arabicName}>{surah.nameArabic}</Text>
-        </View>
-        <Text style={styles.englishName}>{surah.nameArabic}</Text>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={{ paddingBottom: insets.bottom + Spacing.xl }}
+    >
+      {/* Header */}
+      <View style={[styles.header, { paddingTop: insets.top + Spacing.lg }]}>
+        <Text style={styles.arabicName}>{surah.nameArabic}</Text>
+        <Text style={styles.transliteration}>{surah.nameTransliteration}</Text>
       </View>
 
+      {/* Meta Cards */}
       <View style={styles.metaCardsContainer}>
         <View style={styles.metaCard}>
           <Text style={styles.metaIcon}>📍</Text>
           <Text style={styles.metaLabel}>النزول</Text>
-          <Text style={styles.metaValue}>{surah.revelationType === 'Makki' ? 'مكية' : 'مدنية'}</Text>
+          <Text style={styles.metaValue}>{revelationLabel}</Text>
         </View>
         <View style={styles.metaCard}>
           <Text style={styles.metaIcon}>🔢</Text>
-          <Text style={styles.metaLabel}>الآيات</Text>
+          <Text style={styles.metaLabel}>عدد الآيات</Text>
           <Text style={styles.metaValue}>{surah.verseCount}</Text>
         </View>
         <View style={styles.metaCard}>
@@ -40,25 +46,33 @@ export default function SurahSummaryScreen() {
           <Text style={styles.metaLabel}>الجزء</Text>
           <Text style={styles.metaValue}>{surah.juzStart}</Text>
         </View>
+        <View style={styles.metaCard}>
+          <Text style={styles.metaIcon}>🔄</Text>
+          <Text style={styles.metaLabel}>ترتيب النزول</Text>
+          <Text style={styles.metaValue}>{surah.orderInRevelation}</Text>
+        </View>
       </View>
 
-      <View style={styles.contentSection}>
-        <Text style={styles.sectionTitleArabic}>الملخص</Text>
-        <Text style={styles.summaryTextArabic}>{surah.summaryArabic || surah.summaryEnglish}</Text>
+      {/* الملخص */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>الملخص</Text>
+        <Text style={styles.sectionBody}>{summaryText}</Text>
       </View>
 
-      {/* Placeholder for Asbab al-Nuzul (Context of Revelation) */}
-      <View style={styles.contentSection}>
-        <Text style={styles.sectionTitleArabic}>أسباب النزول</Text>
-        <Text style={styles.summaryTextArabic}>
-          {surah.asbabNuzul || "توجيهات عامة نزلت على النبي ﷺ في الفترة الـ" + (surah.revelationType === 'Makki' ? 'مكية' : 'مدنية') + "."}
-        </Text>
+      {/* أسباب النزول */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>أسباب النزول</Text>
+        <Text style={styles.sectionBody}>{asbabText}</Text>
       </View>
-      
+
+      {/* Button */}
       <View style={styles.actionContainer}>
-         <Pressable style={styles.readButton} onPress={() => router.push(`/reader/${surah.id}`)}>
-            <Text style={styles.readButtonText}>اقرأ السورة</Text>
-         </Pressable>
+        <Pressable
+          style={({ pressed }) => [styles.readButton, pressed && { opacity: 0.85 }]}
+          onPress={() => router.push(`/reader/${surah.id}`)}
+        >
+          <Text style={styles.readButtonText}>اقرأ السورة</Text>
+        </Pressable>
       </View>
     </ScrollView>
   );
@@ -69,114 +83,97 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.bgLight,
   },
+  notFound: {
+    textAlign: 'center',
+    marginTop: 40,
+    fontSize: Typography.heading3,
+    color: Colors.textMuted,
+  },
   header: {
-    padding: Spacing.xl,
     backgroundColor: Colors.primary,
+    paddingHorizontal: Spacing.xl,
+    paddingBottom: Spacing.xl,
     borderBottomLeftRadius: BorderRadius.xl,
     borderBottomRightRadius: BorderRadius.xl,
     alignItems: 'center',
-    paddingTop: Spacing.xxl, // Account for safe area roughly
-  },
-  headerTop: {
-    flexDirection: 'row',
-    width: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-  },
-  backBtn: {
-    position: 'absolute',
-    left: 0,
-    padding: Spacing.sm,
-  },
-  backText: {
-    color: Colors.gold,
-    fontSize: Typography.body,
-    fontWeight: 'bold',
   },
   arabicName: {
     fontFamily: Typography.quranFontBold,
-    fontSize: Typography.heading1 + 8,
+    fontSize: Typography.heading1 + 10,
     color: Colors.gold,
+    textAlign: 'center',
   },
-  englishName: {
+  transliteration: {
     fontFamily: Typography.uiFont,
     fontSize: Typography.heading3,
-    color: Colors.textLight,
+    color: 'rgba(255,255,255,0.7)',
     marginTop: Spacing.sm,
-    fontWeight: '500',
+    textAlign: 'center',
   },
   metaCardsContainer: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
-    padding: Spacing.md,
-    marginTop: -Spacing.xl, // Overlap header
+    paddingHorizontal: Spacing.md,
+    marginTop: -Spacing.lg,
+    marginBottom: Spacing.md,
   },
   metaCard: {
+    width: '47%',
     backgroundColor: Colors.bgCard,
     padding: Spacing.md,
     borderRadius: BorderRadius.md,
     alignItems: 'center',
-    flex: 1,
-    marginHorizontal: Spacing.xs,
+    marginBottom: Spacing.sm,
     ...Shadow.card,
   },
   metaIcon: {
-    fontSize: 24,
-    marginBottom: 4,
+    fontSize: 26,
+    marginBottom: 6,
   },
   metaLabel: {
     fontSize: Typography.caption,
     color: Colors.textMuted,
+    fontFamily: Typography.uiFont,
+    textAlign: 'center',
   },
   metaValue: {
-    fontSize: Typography.body,
+    fontSize: Typography.heading3,
     fontWeight: 'bold',
     color: Colors.primaryDark,
     marginTop: 2,
+    textAlign: 'center',
+    fontFamily: Typography.uiFont,
   },
-  contentSection: {
-    padding: Spacing.lg,
+  section: {
     backgroundColor: Colors.bgCard,
     marginHorizontal: Spacing.md,
     marginBottom: Spacing.md,
     borderRadius: BorderRadius.md,
+    padding: Spacing.lg,
     ...Shadow.card,
   },
   sectionTitle: {
+    fontFamily: Typography.quranFontBold,
     fontSize: Typography.heading3,
-    fontWeight: 'bold',
     color: Colors.primary,
-    marginBottom: Spacing.sm,
-  },
-  summaryText: {
-    fontSize: Typography.body,
-    color: Colors.textSecondary,
-    lineHeight: 24,
-  },
-  arabicSummaryContainer: {
-    marginTop: Spacing.lg,
-    paddingTop: Spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: Colors.surface,
-  },
-  sectionTitleArabic: {
-    fontSize: Typography.heading3,
-    fontWeight: 'bold',
-    color: Colors.primary,
-    marginBottom: Spacing.sm,
     textAlign: 'right',
-    fontFamily: Typography.uiFont,
+    marginBottom: Spacing.md,
+    borderBottomWidth: 2,
+    borderBottomColor: Colors.gold,
+    paddingBottom: Spacing.sm,
   },
-  summaryTextArabic: {
-    fontSize: Typography.body + 2,
-    color: Colors.textSecondary,
-    lineHeight: 30,
-    textAlign: 'right',
+  sectionBody: {
     fontFamily: Typography.quranFont,
+    fontSize: Typography.body + 2,
+    color: Colors.textPrimary,
+    textAlign: 'right',
+    lineHeight: 34,
+    writingDirection: 'rtl',
   },
   actionContainer: {
-    padding: Spacing.xl,
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.md,
     paddingBottom: Spacing.xxl,
   },
   readButton: {
@@ -187,8 +184,10 @@ const styles = StyleSheet.create({
     ...Shadow.card,
   },
   readButtonText: {
+    fontFamily: Typography.uiFont,
     color: Colors.textLight,
     fontSize: Typography.heading2,
     fontWeight: 'bold',
-  }
+    textAlign: 'center',
+  },
 });
