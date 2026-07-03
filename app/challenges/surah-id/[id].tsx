@@ -137,7 +137,7 @@ export default function SurahIdChallenge() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.bgLight },
+  container: { flex: 1, backgroundColor: Colors.bgLight, direction: 'rtl' },
   center: { justifyContent: 'center', alignItems: 'center' },
   header: { padding: Spacing.lg, backgroundColor: Colors.bgCard, borderBottomWidth: 1, borderBottomColor: Colors.surface },
   title: { fontSize: Typography.heading2, fontWeight: 'bold', color: Colors.surahId, textAlign: 'right' },

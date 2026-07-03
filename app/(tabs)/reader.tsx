@@ -5,6 +5,7 @@ import { Colors, Spacing } from '../../src/constants/theme';
 import { SURAH_LIST } from '../../src/constants/surahList';
 import { SurahCard } from '../../src/components/SurahCard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ResponsiveContainer } from '../../src/components/ResponsiveContainer';
 
 export default function ReaderScreen() {
   const router = useRouter();
@@ -18,11 +19,11 @@ export default function ReaderScreen() {
   );
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <ResponsiveContainer style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.searchContainer}>
         <TextInput 
           style={styles.searchInput}
-          placeholder="Search Surah..."
+          placeholder="البحث عن سورة..."
           value={searchQuery}
           onChangeText={setSearchQuery}
           placeholderTextColor={Colors.textMuted}
@@ -42,7 +43,7 @@ export default function ReaderScreen() {
         )}
         contentContainerStyle={styles.listContent}
       />
-    </View>
+    </ResponsiveContainer>
   );
 }
 
@@ -63,7 +64,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     borderRadius: 8,
     color: Colors.textPrimary,
-    textAlign: 'right', // Support Arabic input natively
+    textAlign: 'auto', // Automatically align based on whether Arabic or English is typed
   },
   listContent: {
     padding: Spacing.md,

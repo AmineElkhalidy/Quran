@@ -9,8 +9,7 @@ import { VerseActionsSheet } from '../../src/components/VerseActionsSheet';
 import { calculateThumnBoundaries } from '../../src/constants/athmanBoundaries';
 import { fetchVersesForSurah, ApiVerse } from '../../src/services/quranApiService';
 import type { Thumn } from '../../src/types';
-
-const { width } = Dimensions.get('window');
+import { useResponsive } from '../../src/utils/responsive';
 
 export default function SurahReaderScreen() {
   const { surahId } = useLocalSearchParams();
@@ -18,6 +17,7 @@ export default function SurahReaderScreen() {
   const id = parseInt(Array.isArray(surahId) ? surahId[0] : surahId ?? '1', 10);
   
   const surah = getSurahById(id);
+  const { width, maxWidth } = useResponsive();
 
   const [verses, setVerses] = useState<ApiVerse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -81,7 +81,15 @@ export default function SurahReaderScreen() {
     
     return (
       <View style={{ width, flex: 1 }}>
-        <ScrollView contentContainerStyle={{ padding: Spacing.md, paddingBottom: 16 }}>
+        <ScrollView 
+          contentContainerStyle={{ 
+            padding: Spacing.md, 
+            paddingBottom: 16,
+            maxWidth,
+            width: '100%',
+            alignSelf: 'center'
+          }}
+        >
           <Text style={styles.thumnLabel}>{item.label}</Text>
           
           <View style={styles.testModeToggle}>
@@ -152,7 +160,7 @@ export default function SurahReaderScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { maxWidth, width: '100%', alignSelf: 'center', borderBottomWidth: 0 }]}>
         <Text style={styles.arabicName}>{surah.nameArabic}</Text>
         <Text style={styles.meta}>{surah.revelationType === 'Makki' ? 'مكية' : 'مدنية'} • {surah.verseCount} آية</Text>
         
@@ -160,6 +168,7 @@ export default function SurahReaderScreen() {
           <AthmanProgress completedThumns={completedThumns} currentThumn={currentThumn?.thumnNumber || 1} />
         </View>
       </View>
+      <View style={styles.headerBorder} />
 
       {isLoading ? (
         <View style={styles.loadingContainer}>
@@ -208,9 +217,10 @@ export default function SurahReaderScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bgLight },
   header: {
-    backgroundColor: Colors.bgCard, padding: Spacing.md,
-    borderBottomWidth: 1, borderBottomColor: Colors.surface, alignItems: 'center',
+    padding: Spacing.md,
+    alignItems: 'center',
   },
+  headerBorder: { borderBottomWidth: 1, borderBottomColor: Colors.surface },
   arabicName: { fontFamily: Typography.quranFontBold, fontSize: Typography.heading1, color: Colors.primary },
   meta: { fontFamily: Typography.uiFont, color: Colors.textMuted, fontSize: Typography.caption, marginTop: 4 },
   athmanContainer: { width: '100%', marginTop: Spacing.md },

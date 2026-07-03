@@ -101,6 +101,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.bgLight,
+    direction: 'rtl',
   },
   header: {
     padding: Spacing.lg,

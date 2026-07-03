@@ -4,11 +4,11 @@
     "slug": "quran_app",
     "version": "1.0.0",
     "scheme": "quranapp",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": false,
+      "supportsTablet": true,
       "bundleIdentifier": "com.warsh.quranapp",
       "infoPlist": {
         "NSMicrophoneUsageDescription": "This app needs microphone access to record your Quran recitation for pronunciation feedback.",
@@ -46,7 +46,7 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/notification-icon.png",
+          "icon": "./assets/android-icon-monochrome.png",
           "color": "#C9A84C"
         }
       ],

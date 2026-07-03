@@ -2,6 +2,7 @@ import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../../src/constants/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useResponsive } from '../../src/utils/responsive';
 
 const CATEGORIES = [
   {
@@ -99,6 +100,61 @@ const CATEGORIES = [
       },
     ],
   },
+  {
+    label: 'الفهم والتجويد',
+    challenges: [
+      {
+        id: 'word-meaning',
+        route: '/challenges/word-meaning/random',
+        title: 'معاني الكلمات',
+        desc: 'اختر المعنى الصحيح للكلمة القرآنية',
+        icon: '📖',
+        color: Colors.wordMeaning,
+        difficulty: 'متوسط',
+        xp: 60,
+      },
+      {
+        id: 'tajweed',
+        route: '/challenges/tajweed/random',
+        title: 'أحكام التجويد',
+        desc: 'تعرف على الحكم التجويدي المطبق',
+        icon: '🗣️',
+        color: Colors.tajweed,
+        difficulty: 'صعب',
+        xp: 75,
+      },
+      {
+        id: 'similar-verses',
+        route: '/challenges/similar-verses/random',
+        title: 'المتشابهات',
+        desc: 'ميز بين الآيات المتشابهة في السور',
+        icon: '🔍',
+        color: Colors.similarVerses,
+        difficulty: 'خبير',
+        xp: 80,
+      },
+      {
+        id: 'surah-order',
+        route: '/challenges/surah-order/random',
+        title: 'ترتيب السور',
+        desc: 'اختبر حفظك لترتيب سور المصحف',
+        icon: '🔢',
+        color: Colors.surahOrder,
+        difficulty: 'متوسط',
+        xp: 50,
+      },
+      {
+        id: 'guess-juz',
+        route: '/challenges/guess-juz/random',
+        title: 'في أي جزء؟',
+        desc: 'حدد الجزء الذي تبدأ فيه السورة',
+        icon: '🧩',
+        color: Colors.guessJuz,
+        difficulty: 'سهل',
+        xp: 50,
+      },
+    ],
+  },
 ];
 
 const DIFFICULTY_COLORS: Record<string, string> = {
@@ -111,11 +167,18 @@ const DIFFICULTY_COLORS: Record<string, string> = {
 export default function ChallengesHubScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { maxWidth } = useResponsive();
 
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={{ paddingTop: insets.top, paddingBottom: insets.bottom + Spacing.xl }}
+      contentContainerStyle={{ 
+        paddingTop: insets.top, 
+        paddingBottom: insets.bottom + Spacing.xl,
+        maxWidth,
+        width: '100%',
+        alignSelf: 'center'
+      }}
     >
       <View style={styles.header}>
         <Text style={styles.headerTitle}>التحديات</Text>

@@ -6,6 +6,7 @@ import { useEffect, useCallback } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getSurahById } from '../../src/constants/surahList';
 import { calculateThumnBoundaries } from '../../src/constants/athmanBoundaries';
+import { useResponsive } from '../../src/utils/responsive';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -13,6 +14,7 @@ export default function HomeScreen() {
   const lastRead = useQuranStore(state => state.lastRead);
   const loadStats = useQuranStore(state => state.loadStats);
   const insets = useSafeAreaInsets();
+  const { maxWidth, moderateScale, isTablet } = useResponsive();
 
   // Load stats on mount and whenever the screen re-renders
   useEffect(() => {
@@ -50,7 +52,10 @@ export default function HomeScreen() {
         styles.scrollContent,
         { 
           paddingTop: insets.top + Spacing.md,
-          paddingBottom: insets.bottom + Spacing.xxl // Extra space for tab bar
+          paddingBottom: insets.bottom + Spacing.xxl, // Extra space for tab bar
+          maxWidth,
+          width: '100%',
+          alignSelf: 'center',
         }
       ]}
     >

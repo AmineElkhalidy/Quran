@@ -45,6 +45,11 @@ export const Colors = {
   verseComplete: '#805AD5', // Purple — Complete the Verse
   surahQuiz: '#2B6CB0',    // Blue — Surah Knowledge Quiz
   trueFalse: '#276749',    // Green — True or False
+  wordMeaning: '#319795',  // Teal — Word Meanings
+  tajweed: '#D53F8C',      // Pink — Tajweed Rules
+  surahOrder: '#E53E3E',   // Red — Surah Order
+  guessJuz: '#4C51BF',     // Indigo — Guess the Juz
+  similarVerses: '#059669', // Emerald — Similar Verses
 
   // Reward tiers
   bronze: '#CD7F32',

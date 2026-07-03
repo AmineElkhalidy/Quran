@@ -355,7 +355,7 @@ export default function VerseOrderingScreen() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.bgLight },
+  container: { flex: 1, backgroundColor: Colors.bgLight, direction: 'rtl' },
   center: { justifyContent: 'center', alignItems: 'center', padding: Spacing.xl },
   loadingText: { marginTop: Spacing.md, fontSize: Typography.body, color: Colors.textMuted, textAlign: 'center' },
 

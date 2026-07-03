@@ -161,7 +161,7 @@ export default function VerseCompleteChallenge() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.bgLight },
+  container: { flex: 1, backgroundColor: Colors.bgLight, direction: 'rtl' },
   center: { justifyContent: 'center', alignItems: 'center', padding: Spacing.xl },
   errText: { fontSize: Typography.body, color: Colors.textMuted, marginBottom: Spacing.md, textAlign: 'center' },
   header: { padding: Spacing.lg, backgroundColor: Colors.bgCard, borderBottomWidth: 1, borderBottomColor: Colors.surface },

@@ -3,10 +3,12 @@ import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../../src/con
 import { BADGES } from '../../src/constants/badges';
 import { useQuranStore } from '../../src/store/quranStore';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useResponsive } from '../../src/utils/responsive';
 
 export default function RewardsScreen() {
   const stats = useQuranStore(state => state.stats);
   const insets = useSafeAreaInsets();
+  const { maxWidth } = useResponsive();
 
   const getTierColor = (tier: string) => {
     switch (tier) {
@@ -19,7 +21,15 @@ export default function RewardsScreen() {
   };
 
   return (
-    <ScrollView style={[styles.container, { paddingTop: insets.top }]}>
+    <ScrollView 
+      style={styles.container}
+      contentContainerStyle={{
+        paddingTop: insets.top,
+        maxWidth,
+        width: '100%',
+        alignSelf: 'center'
+      }}
+    >
       <View style={styles.header}>
         <Text style={styles.headerTitle}>الإنجازات</Text>
         <Text style={styles.headerSub}>افتح الأوسمة كلما تقدمت في رحلتك.</Text>
