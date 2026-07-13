@@ -1,10 +1,11 @@
-import { View, Text, StyleSheet, Pressable, Animated } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Animated , ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../../../src/constants/theme';
 import { useQuranStore } from '../../../src/store/quranStore';
 import { SURAH_LIST } from '../../../src/constants/surahList';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import CountdownTimer from '../../../src/components/CountdownTimer';
 
 interface TFQuestion {
   statement: string;
@@ -25,10 +26,12 @@ function generateTFQuestion(): TFQuestion {
       answer: true,
       explanation: `نعم، سورة ${surah.nameArabic} تحتوي على ${surah.verseCount} آية`,
     }),
-    // Verse count — false (random wrong count)
+    // Verse count — false (close wrong count)
     () => {
       let wrongCount = surah.verseCount;
-      while (wrongCount === surah.verseCount) wrongCount = Math.floor(Math.random() * 200) + 3;
+      while (wrongCount === surah.verseCount || wrongCount < 3) {
+        wrongCount = surah.verseCount + (Math.floor(Math.random() * 5) - 2); // ±1 or ±2
+      }
       return {
         surahId: surah.id,
         statement: `سورة ${surah.nameArabic} تحتوي على ${wrongCount} آية`,
@@ -67,7 +70,9 @@ function generateTFQuestion(): TFQuestion {
     // Juz — false
     () => {
       let wrongJuz = surah.juzStart;
-      while (wrongJuz === surah.juzStart) wrongJuz = Math.floor(Math.random() * 30) + 1;
+      while (wrongJuz === surah.juzStart || wrongJuz < 1 || wrongJuz > 30) {
+        wrongJuz = surah.juzStart + (Math.random() > 0.5 ? 1 : -1); // ±1
+      }
       return {
         surahId: surah.id,
         statement: `سورة ${surah.nameArabic} تبدأ في الجزء ${wrongJuz}`,
@@ -119,7 +124,7 @@ export default function TrueFalseChallenge() {
     setIsCorrect(correct);
     if (correct) {
       setStreak(s => s + 1);
-      markCompleted(question.surahId, 1, 50);
+      markCompleted(question.surahId, 1, 200);
     } else {
       setStreak(0);
       shake();
@@ -141,6 +146,21 @@ export default function TrueFalseChallenge() {
           )}
         </View>
       </View>
+
+      <CountdownTimer
+        durationSeconds={15}
+        onTimeUp={() => {
+          if (!submitted) {
+            setSubmitted(true);
+            setIsCorrect(false);
+            setStreak(0);
+            shake();
+          }
+        }}
+        stopped={submitted}
+      />
+
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
 
       {/* Statement */}
       <Animated.View style={[styles.statementBox, { transform: [{ translateX: shakeAnim }] }]}>
@@ -184,10 +204,12 @@ export default function TrueFalseChallenge() {
       </View>
 
       {/* Result footer */}
+            </ScrollView>
+
       {submitted && (
         <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, Spacing.lg) }]}>
           <Text style={isCorrect ? styles.successText : styles.failText}>
-            {isCorrect ? `أحسنت! +٥٠ نقطة 🌟` : 'إجابة خاطئة!'}
+            {isCorrect ? `أحسنت! +٢٠٠ نقطة 🌟` : 'إجابة خاطئة!'}
           </Text>
           <Pressable style={styles.nextBtn} onPress={nextQuestion}>
             <Text style={styles.nextBtnText}>السؤال التالي</Text>

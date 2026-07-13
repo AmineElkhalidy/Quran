@@ -1,10 +1,11 @@
-import { View, Text, StyleSheet, Pressable, Animated } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Animated , ScrollView } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../../../src/constants/theme';
 import { useQuranStore } from '../../../src/store/quranStore';
 import { TAJWEED_RULES, TajweedQuestion } from '../../../src/constants/challengeData';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import CountdownTimer from '../../../src/components/CountdownTimer';
 
 export default function TajweedChallenge() {
   const router = useRouter();
@@ -24,8 +25,12 @@ export default function TajweedChallenge() {
     while (randomQ.ayahContext === prevAyah && TAJWEED_RULES.length > 1) {
       randomQ = TAJWEED_RULES[Math.floor(Math.random() * TAJWEED_RULES.length)];
     }
+    const correctText = randomQ.options[randomQ.correctIndex];
+    const shuffledOptions = [...randomQ.options].sort(() => Math.random() - 0.5);
+    const newCorrectIndex = shuffledOptions.indexOf(correctText);
+
     setPrevAyah(randomQ.ayahContext);
-    setQuestion(randomQ);
+    setQuestion({ ...randomQ, options: shuffledOptions, correctIndex: newCorrectIndex });
     setUserAnswer(null);
     setSubmitted(false);
     setIsCorrect(false);
@@ -50,7 +55,7 @@ export default function TajweedChallenge() {
     setIsCorrect(correct);
     if (correct) {
       setStreak(s => s + 1);
-      markCompleted(1, 1, 75); // Tajweed gives 75 XP
+      markCompleted(1, 1, 200); // Tajweed gives 200 XP
     } else {
       setStreak(0);
       shake();
@@ -78,6 +83,21 @@ export default function TajweedChallenge() {
         </View>
       </View>
 
+      <CountdownTimer
+        durationSeconds={20}
+        onTimeUp={() => {
+          if (!submitted) {
+            setSubmitted(true);
+            setIsCorrect(false);
+            setStreak(0);
+            shake();
+          }
+        }}
+        stopped={submitted}
+      />
+
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
+
       <Animated.View style={[styles.statementBox, { transform: [{ translateX: shakeAnim }] }]}>
         <Text style={styles.statementText}>
           {parts[0]}
@@ -95,8 +115,8 @@ export default function TajweedChallenge() {
         {question.options.map((opt, idx) => {
           const isSelected = userAnswer === idx;
           const isActualCorrect = question.correctIndex === idx;
-          let btnStyle = styles.optionBtn;
-          let textStyle = styles.optionText;
+          let btnStyle: any = styles.optionBtn;
+          let textStyle: any = styles.optionText;
 
           if (submitted) {
             if (isActualCorrect) {
@@ -121,10 +141,12 @@ export default function TajweedChallenge() {
         })}
       </View>
 
+            </ScrollView>
+
       {submitted && (
         <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, Spacing.lg) }]}>
           <Text style={isCorrect ? styles.successText : styles.failText}>
-            {isCorrect ? `أحسنت! +٧٥ نقطة 🌟` : 'إجابة خاطئة!'}
+            {isCorrect ? `أحسنت! +٢٠٠ نقطة 🌟` : 'إجابة خاطئة!'}
           </Text>
           <Pressable style={styles.nextBtn} onPress={nextQuestion}>
             <Text style={styles.nextBtnText}>السؤال التالي</Text>

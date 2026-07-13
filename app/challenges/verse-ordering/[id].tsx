@@ -10,6 +10,7 @@ import { fetchVersesForSurah, ApiVerse } from '../../../src/services/quranApiSer
 import { getSurahById } from '../../../src/constants/surahList';
 import { calculateThumnBoundaries } from '../../../src/constants/athmanBoundaries';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import CountdownTimer from '../../../src/components/CountdownTimer';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface VerseItem {
@@ -41,7 +42,7 @@ export default function VerseOrderingScreen() {
   // Handle "random" surah
   useEffect(() => {
     if (id === 'random') {
-      const randomSurah = Math.floor(Math.random() * (114 - 87 + 1)) + 87;
+      const randomSurah = Math.floor(Math.random() * 114) + 1;
       router.replace(`/challenges/verse-ordering/${randomSurah}` as any);
     }
   }, [id, router]);
@@ -77,8 +78,8 @@ export default function VerseOrderingScreen() {
         return;
       }
 
-      const MIN = 4;
-      const MAX = 6;
+      const MIN = 6;
+      const MAX = 10;
 
       let selectedVerses: ApiVerse[];
 
@@ -184,7 +185,7 @@ export default function VerseOrderingScreen() {
     if (allCorrect) {
       setIsCorrect(true);
       setFlashCorrect(true);
-      markCompleted(surahIdNum, 1, 100);
+      markCompleted(surahIdNum, 1, 200);
       setTimeout(() => setFlashCorrect(false), 1000);
     }
   };
@@ -235,6 +236,15 @@ export default function VerseOrderingScreen() {
           {'\n'}اضغط على آية لوضعها في الخانة، واضغط على الخانة لإزالتها.
         </Text>
       </View>
+      <CountdownTimer
+        durationSeconds={60}
+        onTimeUp={() => {
+          if (!isSubmitted) {
+            validateOrder();
+          }
+        }}
+        stopped={isSubmitted}
+      />
 
       {/* ── Numbered Slots (top, scrollable) ───────────────────────────── */}
       <ScrollView
@@ -298,7 +308,7 @@ export default function VerseOrderingScreen() {
         <View style={styles.resultBanner}>
           {isCorrect ? (
             <>
-              <Text style={styles.resultCorrect}>أحسنت! +١٠٠ نقطة 🌟</Text>
+              <Text style={styles.resultCorrect}>أحسنت! +٢٠٠ نقطة 🌟</Text>
               <Pressable
                 style={[styles.btn, styles.btnFull]}
                 onPress={() => router.replace('/challenges/verse-ordering/random' as any)}
@@ -516,7 +526,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.primaryLight,
     justifyContent: 'center',
     alignItems: 'center',
-    ...Shadow.sm,
+    ...Shadow.card,
   },
   availText: {
     fontFamily: Typography.quranFont,

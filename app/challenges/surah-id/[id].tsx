@@ -6,6 +6,7 @@ import { useQuranStore } from '../../../src/store/quranStore';
 import { fetchVersesForSurah } from '../../../src/services/quranApiService';
 import { getSurahById, SURAH_LIST } from '../../../src/constants/surahList';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import CountdownTimer from '../../../src/components/CountdownTimer';
 
 interface Option { id: string; label: string; isCorrect: boolean; }
 
@@ -26,12 +27,12 @@ export default function SurahIdChallenge() {
 
   useEffect(() => {
     if (id === 'random') {
-      const r = Math.floor(Math.random() * (114 - 87 + 1)) + 87;
+      const r = Math.floor(Math.random() * 114) + 1;
       router.replace(`/challenges/surah-id/${r}` as any);
     }
   }, [id, router]);
 
-  const surahIdNum = id === 'random' ? 87 : parseInt(Array.isArray(id) ? id[0] : id ?? '87', 10);
+  const surahIdNum = id === 'random' ? 1 : parseInt(Array.isArray(id) ? id[0] : id ?? '1', 10);
 
   const [isLoading, setIsLoading] = useState(true);
   const [verseText, setVerseText] = useState('');
@@ -51,12 +52,19 @@ export default function SurahIdChallenge() {
       if (cancelled || verses.length === 0) { setIsLoading(false); return; }
 
       const verse = verses[Math.floor(Math.random() * verses.length)];
-      setVerseText(verse.text);
+      
+      const words = verse.text.split(' ');
+      if (words.length > 5) {
+        const start = Math.floor(Math.random() * (words.length - 4));
+        const length = 3 + Math.floor(Math.random() * 3);
+        setVerseText('... ' + words.slice(start, start + length).join(' ') + ' ...');
+      } else {
+        setVerseText(verse.text);
+      }
 
       const correctSurah = getSurahById(surahIdNum)!;
-      // 3 random distractors (different surah IDs)
       const distractorPool = SURAH_LIST.filter(s => s.id !== surahIdNum);
-      const distractors = shuffle(distractorPool).slice(0, 3);
+      const distractors = shuffle(distractorPool).slice(0, 5);
 
       const opts: Option[] = shuffle([
         { id: 'correct', label: correctSurah.nameArabic, isCorrect: true },
@@ -75,7 +83,7 @@ export default function SurahIdChallenge() {
     setSubmitted(true);
     const isCorrect = options.find(o => o.id === selected)?.isCorrect ?? false;
     setCorrect(isCorrect);
-    if (isCorrect) markCompleted(surahIdNum, 1, 80);
+    if (isCorrect) markCompleted(surahIdNum, 1, 200);
   };
 
   if (isLoading) return (
@@ -90,6 +98,17 @@ export default function SurahIdChallenge() {
         <Text style={styles.title}>تعرف على السورة</Text>
         <Text style={styles.subtitle}>من أي سورة هذه الآية؟</Text>
       </View>
+
+      <CountdownTimer
+        durationSeconds={30}
+        onTimeUp={() => {
+          setSubmitted(true);
+          setCorrect(false);
+        }}
+        stopped={submitted}
+      />
+
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
 
       <ScrollView contentContainerStyle={styles.verseBox}>
         <Text style={styles.verseText}>{verseText}</Text>
@@ -116,11 +135,13 @@ export default function SurahIdChallenge() {
         })}
       </View>
 
+            </ScrollView>
+
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, Spacing.lg) }]}>
         {submitted ? (
           <View style={styles.resultSection}>
             <Text style={correct ? styles.successText : styles.failText}>
-              {correct ? 'صحيح! +٨٠ نقطة 🌟' : `الإجابة: ${options.find(o => o.isCorrect)?.label}`}
+              {correct ? 'صحيح! +٢٠٠ نقطة 🌟' : `الإجابة: ${options.find(o => o.isCorrect)?.label}`}
             </Text>
             <Pressable style={styles.btn} onPress={() => router.replace('/challenges/surah-id/random' as any)}>
               <Text style={styles.btnText}>التحدي التالي</Text>

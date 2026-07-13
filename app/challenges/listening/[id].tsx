@@ -7,6 +7,7 @@ import { audioService } from '../../../src/services/audioService';
 import { fetchVersesForSurah, ApiVerse } from '../../../src/services/quranApiService';
 import { getSurahById } from '../../../src/constants/surahList';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import CountdownTimer from '../../../src/components/CountdownTimer';
 
 interface Option {
   id: string;
@@ -31,7 +32,7 @@ export default function ListeningChallengeScreen() {
   
   useEffect(() => {
     if (id === 'random') {
-      const randomSurah = Math.floor(Math.random() * (114 - 87 + 1)) + 87;
+      const randomSurah = Math.floor(Math.random() * 114) + 1;
       router.replace(`/challenges/listening/${randomSurah}` as any);
     }
   }, [id, router]);
@@ -46,6 +47,8 @@ export default function ListeningChallengeScreen() {
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
+  const [hasPlayed, setHasPlayed] = useState(false);
+  const [timerStarted, setTimerStarted] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -62,7 +65,7 @@ export default function ListeningChallengeScreen() {
       const otherVerses = verses.filter(v => v.ayahNumber !== targetVerse.ayahNumber);
       const distractors = new Set<ApiVerse>();
       
-      while (distractors.size < 2 && otherVerses.length > 0) {
+      while (distractors.size < 5 && otherVerses.length > 0) {
         const randVerse = otherVerses[Math.floor(Math.random() * otherVerses.length)];
         distractors.add(randVerse);
         if (distractors.size >= otherVerses.length) break;
@@ -85,9 +88,11 @@ export default function ListeningChallengeScreen() {
   }, [surahIdNum]);
 
   const togglePlay = async () => {
-    if (!correctAyah) return;
+    if (!correctAyah || hasPlayed) return;
     
     setIsPlaying(true);
+    setHasPlayed(true);
+    setTimerStarted(true);
     await audioService.playWarshAudio(correctAyah.surahId, correctAyah.ayahNumber, () => {
       setIsPlaying(false);
     });
@@ -107,7 +112,7 @@ export default function ListeningChallengeScreen() {
     setIsCorrect(correct);
 
     if (correct) {
-      markCompleted(surahIdNum, 2, 150); // 150 XP
+      markCompleted(surahIdNum, 2, 200); // 200 XP
     }
   };
 
@@ -123,19 +128,32 @@ export default function ListeningChallengeScreen() {
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: Math.max(insets.top, Spacing.lg) }]}>
         <Text style={styles.title}>اختبار الاستماع</Text>
-        <Text style={styles.subtitle}>استمع إلى التلاوة برواية ورش وتعرف على الآية الصحيحة من {surah?.nameArabic ?? 'القرآن الكريم'}.</Text>
+        <Text style={styles.subtitle}>استمع إلى التلاوة برواية ورش وتعرف على الآية الصحيحة من {surah?.nameArabic ?? 'القرآن الكريم'}. (استماع واحد فقط)</Text>
       </View>
+
+      <CountdownTimer
+        durationSeconds={30}
+        onTimeUp={() => {
+          setIsSubmitted(true);
+          setIsCorrect(false);
+        }}
+        paused={!timerStarted}
+        stopped={isSubmitted}
+      />
+
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
 
       <ScrollView style={styles.scrollArea} contentContainerStyle={styles.scrollContent}>
         <View style={styles.audioSection}>
           <Pressable 
-            style={[styles.playButton, isPlaying && styles.playButtonActive]} 
+            style={[styles.playButton, isPlaying && styles.playButtonActive, hasPlayed && !isPlaying && { opacity: 0.5 }]} 
             onPress={togglePlay}
+            disabled={hasPlayed}
           >
             <Text style={styles.playIcon}>{isPlaying ? '🔊' : '▶️'}</Text>
           </Pressable>
           <Text style={styles.audioLabel}>
-            {isPlaying ? 'جاري تشغيل الآية...' : 'اضغط للاستماع'}
+            {isPlaying ? 'جاري تشغيل الآية...' : hasPlayed ? 'تم الاستماع' : 'اضغط للاستماع (مرة واحدة)'}
           </Text>
         </View>
 
@@ -171,11 +189,13 @@ export default function ListeningChallengeScreen() {
         </View>
       </ScrollView>
 
+            </ScrollView>
+
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, Spacing.lg) }]}>
         {isSubmitted ? (
           <View style={styles.resultSection}>
             {isCorrect ? (
-              <Text style={styles.successText}>صحيح! +150 نقطة 🌟</Text>
+              <Text style={styles.successText}>صحيح! +٢٠٠ نقطة 🌟</Text>
             ) : (
               <Text style={styles.failText}>خطأ، حاول مرة أخرى.</Text>
             )}

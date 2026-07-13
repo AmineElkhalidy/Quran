@@ -1,10 +1,11 @@
-import { View, Text, StyleSheet, Pressable, Animated } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Animated , ScrollView } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../../../src/constants/theme';
 import { useQuranStore } from '../../../src/store/quranStore';
 import { SURAH_LIST } from '../../../src/constants/surahList';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import CountdownTimer from '../../../src/components/CountdownTimer';
 
 interface GuessJuzQuestion {
   questionText: string;
@@ -19,18 +20,24 @@ function generateGuessJuzQuestion(): GuessJuzQuestion {
 
   const questionText = `في أي جزء تبدأ سورة ${targetSurah.nameArabic}؟`;
 
-  // Generate 3 random wrong options
+  // Generate 5 random wrong options (clustered near correct answer)
   const wrongOptions = new Set<number>();
-  while (wrongOptions.size < 3) {
-    const randomJuz = Math.floor(Math.random() * 30) + 1;
-    if (randomJuz !== correctJuz) {
+  while (wrongOptions.size < 5) {
+    let offset = Math.floor(Math.random() * 9) - 4; // -4 to +4
+    let randomJuz = correctJuz + offset;
+    
+    // If out of bounds, shift the other way
+    if (randomJuz < 1) randomJuz = correctJuz + Math.floor(Math.random() * 6) + 1;
+    if (randomJuz > 30) randomJuz = correctJuz - Math.floor(Math.random() * 6) - 1;
+
+    if (randomJuz !== correctJuz && randomJuz >= 1 && randomJuz <= 30) {
       wrongOptions.add(randomJuz);
     }
   }
 
   const optionsNum = Array.from(wrongOptions);
   // Insert correct option at random index
-  const correctIndex = Math.floor(Math.random() * 4);
+  const correctIndex = Math.floor(Math.random() * 6);
   optionsNum.splice(correctIndex, 0, correctJuz);
 
   const options = optionsNum.map(num => `الجزء ${num}`);
@@ -87,7 +94,7 @@ export default function GuessJuzChallenge() {
     setIsCorrect(correct);
     if (correct) {
       setStreak(s => s + 1);
-      markCompleted(1, 1, 50); 
+      markCompleted(1, 1, 200); 
     } else {
       setStreak(0);
       shake();
@@ -112,6 +119,21 @@ export default function GuessJuzChallenge() {
         </View>
       </View>
 
+      <CountdownTimer
+        durationSeconds={15}
+        onTimeUp={() => {
+          if (!submitted) {
+            setSubmitted(true);
+            setIsCorrect(false);
+            setStreak(0);
+            shake();
+          }
+        }}
+        stopped={submitted}
+      />
+
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
+
       <Animated.View style={[styles.statementBox, { transform: [{ translateX: shakeAnim }] }]}>
         <Text style={styles.statementText}>{question.questionText}</Text>
         {submitted && (
@@ -125,8 +147,8 @@ export default function GuessJuzChallenge() {
         {question.options.map((opt, idx) => {
           const isSelected = userAnswer === idx;
           const isActualCorrect = question.correctIndex === idx;
-          let btnStyle = styles.optionBtn;
-          let textStyle = styles.optionText;
+          let btnStyle: any = styles.optionBtn;
+          let textStyle: any = styles.optionText;
 
           if (submitted) {
             if (isActualCorrect) {
@@ -151,10 +173,12 @@ export default function GuessJuzChallenge() {
         })}
       </View>
 
+            </ScrollView>
+
       {submitted && (
         <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, Spacing.lg) }]}>
           <Text style={isCorrect ? styles.successText : styles.failText}>
-            {isCorrect ? `أحسنت! +٥٠ نقطة 🌟` : 'إجابة خاطئة!'}
+            {isCorrect ? `أحسنت! +٢٠٠ نقطة 🌟` : 'إجابة خاطئة!'}
           </Text>
           <Pressable style={styles.nextBtn} onPress={nextQuestion}>
             <Text style={styles.nextBtnText}>السؤال التالي</Text>

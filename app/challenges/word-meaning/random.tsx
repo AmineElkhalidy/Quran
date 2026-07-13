@@ -1,10 +1,11 @@
-import { View, Text, StyleSheet, Pressable, Animated } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Animated , ScrollView } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../../../src/constants/theme';
 import { useQuranStore } from '../../../src/store/quranStore';
 import { WORD_MEANINGS, WordMeaningQuestion } from '../../../src/constants/challengeData';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import CountdownTimer from '../../../src/components/CountdownTimer';
 
 export default function WordMeaningChallenge() {
   const router = useRouter();
@@ -25,8 +26,12 @@ export default function WordMeaningChallenge() {
     while (randomQ.word === prevWord && WORD_MEANINGS.length > 1) {
       randomQ = WORD_MEANINGS[Math.floor(Math.random() * WORD_MEANINGS.length)];
     }
+    const correctText = randomQ.options[randomQ.correctIndex];
+    const shuffledOptions = [...randomQ.options].sort(() => Math.random() - 0.5);
+    const newCorrectIndex = shuffledOptions.indexOf(correctText);
+
     setPrevWord(randomQ.word);
-    setQuestion(randomQ);
+    setQuestion({ ...randomQ, options: shuffledOptions, correctIndex: newCorrectIndex });
     setUserAnswer(null);
     setSubmitted(false);
     setIsCorrect(false);
@@ -51,7 +56,7 @@ export default function WordMeaningChallenge() {
     setIsCorrect(correct);
     if (correct) {
       setStreak(s => s + 1);
-      markCompleted(1, 1, 60); // Fake Surah ID 1 for now, or could store in WordMeaningQuestion
+      markCompleted(1, 1, 200); // 200 XP
     } else {
       setStreak(0);
       shake();
@@ -79,6 +84,21 @@ export default function WordMeaningChallenge() {
         </View>
       </View>
 
+      <CountdownTimer
+        durationSeconds={20}
+        onTimeUp={() => {
+          if (!submitted) {
+            setSubmitted(true);
+            setIsCorrect(false);
+            setStreak(0);
+            shake();
+          }
+        }}
+        stopped={submitted}
+      />
+
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
+
       <Animated.View style={[styles.statementBox, { transform: [{ translateX: shakeAnim }] }]}>
         <Text style={styles.statementText}>
           {parts[0]}
@@ -96,8 +116,8 @@ export default function WordMeaningChallenge() {
         {question.options.map((opt, idx) => {
           const isSelected = userAnswer === idx;
           const isActualCorrect = question.correctIndex === idx;
-          let btnStyle = styles.optionBtn;
-          let textStyle = styles.optionText;
+          let btnStyle: any = styles.optionBtn;
+          let textStyle: any = styles.optionText;
 
           if (submitted) {
             if (isActualCorrect) {
@@ -122,10 +142,12 @@ export default function WordMeaningChallenge() {
         })}
       </View>
 
+            </ScrollView>
+
       {submitted && (
         <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, Spacing.lg) }]}>
           <Text style={isCorrect ? styles.successText : styles.failText}>
-            {isCorrect ? `أحسنت! +٦٠ نقطة 🌟` : 'إجابة خاطئة!'}
+            {isCorrect ? `أحسنت! +٢٠٠ نقطة 🌟` : 'إجابة خاطئة!'}
           </Text>
           <Pressable style={styles.nextBtn} onPress={nextQuestion}>
             <Text style={styles.nextBtnText}>السؤال التالي</Text>

@@ -1,10 +1,11 @@
-import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ActivityIndicator , ScrollView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState, useEffect, useCallback } from 'react';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../../../src/constants/theme';
 import { useQuranStore } from '../../../src/store/quranStore';
 import { SURAH_LIST } from '../../../src/constants/surahList';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import CountdownTimer from '../../../src/components/CountdownTimer';
 
 type QuestionType = 'verse-count' | 'revelation' | 'juz' | 'order';
 
@@ -23,9 +24,16 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-function pickDistinctNumbers(correct: number, pool: number[], count: number): number[] {
-  const filtered = [...new Set(pool.filter(n => n !== correct))];
-  return shuffle(filtered).slice(0, count);
+function pickClusteredNumbers(correct: number, count: number, minBound: number, maxBound: number): number[] {
+  const distractors = new Set<number>();
+  while (distractors.size < count) {
+    const offset = Math.floor(Math.random() * 9) - 4; // -4 to +4
+    const candidate = correct + offset;
+    if (candidate !== correct && candidate >= minBound && candidate <= maxBound) {
+      distractors.add(candidate);
+    }
+  }
+  return Array.from(distractors);
 }
 
 function generateQuestion(type: QuestionType): Question {
@@ -33,8 +41,7 @@ function generateQuestion(type: QuestionType): Question {
   const allSurahs = SURAH_LIST;
 
   if (type === 'verse-count') {
-    const allCounts = allSurahs.map(s => s.verseCount);
-    const distractors = pickDistinctNumbers(surah.verseCount, allCounts, 3);
+    const distractors = pickClusteredNumbers(surah.verseCount, 5, 3, 286);
     return {
       surahId: surah.id,
       text: `كم عدد آيات سورة ${surah.nameArabic}؟`,
@@ -59,8 +66,7 @@ function generateQuestion(type: QuestionType): Question {
   }
 
   if (type === 'juz') {
-    const allJuz = allSurahs.map(s => s.juzStart);
-    const distractors = pickDistinctNumbers(surah.juzStart, allJuz, 3);
+    const distractors = pickClusteredNumbers(surah.juzStart, 5, 1, 30);
     return {
       surahId: surah.id,
       text: `في أي جزء تبدأ سورة ${surah.nameArabic}؟`,
@@ -72,8 +78,7 @@ function generateQuestion(type: QuestionType): Question {
   }
 
   // order
-  const allOrders = allSurahs.map(s => s.orderInRevelation);
-  const distractors = pickDistinctNumbers(surah.orderInRevelation, allOrders, 3);
+  const distractors = pickClusteredNumbers(surah.orderInRevelation, 5, 1, 114);
   return {
     surahId: surah.id,
     text: `ما هو ترتيب سورة ${surah.nameArabic} في النزول؟`,
@@ -112,7 +117,7 @@ export default function SurahQuizChallenge() {
     setSubmitted(true);
     const isCorrect = question.options.find(o => o.id === selected)?.isCorrect ?? false;
     setCorrect(isCorrect);
-    if (isCorrect) markCompleted(question.surahId, 1, 60);
+    if (isCorrect) markCompleted(question.surahId, 1, 200);
   };
 
   if (!question) return (
@@ -129,6 +134,17 @@ export default function SurahQuizChallenge() {
         <Text style={styles.title}>معلومات السور</Text>
         <Text style={styles.subtitle}>اختبر معرفتك بالقرآن الكريم</Text>
       </View>
+
+      <CountdownTimer
+        durationSeconds={20}
+        onTimeUp={() => {
+          setSubmitted(true);
+          setCorrect(false);
+        }}
+        stopped={submitted}
+      />
+
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
 
       <View style={styles.questionBox}>
         <Text style={styles.questionText}>{question.text}</Text>
@@ -161,12 +177,14 @@ export default function SurahQuizChallenge() {
         })}
       </View>
 
+            </ScrollView>
+
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, Spacing.lg) }]}>
         {submitted ? (
           <View style={styles.resultSection}>
             <Text style={correct ? styles.successText : styles.failText}>
               {correct
-                ? 'ممتاز! +٦٠ نقطة 🌟'
+                ? 'ممتاز! +٢٠٠ نقطة 🌟'
                 : `الإجابة الصحيحة: ${question.options.find(o => o.isCorrect)?.label}`}
             </Text>
             <Pressable style={styles.btn} onPress={nextQuestion}>

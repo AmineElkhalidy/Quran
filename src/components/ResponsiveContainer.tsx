@@ -22,7 +22,7 @@ export function ResponsiveContainer({
       <View 
         style={[
           styles.content, 
-          { maxWidth }, 
+          { maxWidth: maxWidth as any }, 
           isTablet && centerContent && styles.tabletCentered,
           contentContainerStyle
         ]}

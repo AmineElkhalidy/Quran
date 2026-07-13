@@ -85,7 +85,7 @@ export default function SurahReaderScreen() {
           contentContainerStyle={{ 
             padding: Spacing.md, 
             paddingBottom: 16,
-            maxWidth,
+            maxWidth: maxWidth as any,
             width: '100%',
             alignSelf: 'center'
           }}
@@ -160,7 +160,7 @@ export default function SurahReaderScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.header, { maxWidth, width: '100%', alignSelf: 'center', borderBottomWidth: 0 }]}>
+      <View style={[styles.header, { maxWidth: maxWidth as any, width: '100%', alignSelf: 'center', borderBottomWidth: 0 }]}>
         <Text style={styles.arabicName}>{surah.nameArabic}</Text>
         <Text style={styles.meta}>{surah.revelationType === 'Makki' ? 'مكية' : 'مدنية'} • {surah.verseCount} آية</Text>
         

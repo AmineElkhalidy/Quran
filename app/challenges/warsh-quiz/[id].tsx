@@ -1,54 +1,102 @@
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Pressable , ScrollView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../../../src/constants/theme';
 import { WARSH_RULES } from '../../../src/utils/warshUtils';
 import { useQuranStore } from '../../../src/store/quranStore';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import CountdownTimer from '../../../src/components/CountdownTimer';
+
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 
 export default function WarshQuizScreen() {
-  const { id } = useLocalSearchParams();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const markCompleted = useQuranStore(state => state.markCompleted);
 
-  const rule = WARSH_RULES[0]; // Transfer of Vowel (Naql) for demo
-  
-  const QUESTION = `كيف تُنطق "${rule.examples[0].split(' becomes ')[0]}" برواية ورش؟`;
-  const OPTIONS = [
-    { id: '1', text: rule.examples[0].split(' becomes ')[1], isCorrect: true }, // مَنَ َامَنَ
-    { id: '2', text: 'مَنْ ءَامَنَ (رواية حفص)', isCorrect: false },
-    { id: '3', text: 'مَنِ امَنَ', isCorrect: false },
-  ];
-
+  const [question, setQuestion] = useState<{ text: string, options: { id: string, label: string, isCorrect: boolean }[] } | null>(null);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isCorrect, setIsCorrect] = useState(false);
+
+  const nextQuestion = () => {
+    const type = Math.random() > 0.5 ? 'desc' : 'example';
+    const rule = WARSH_RULES[Math.floor(Math.random() * WARSH_RULES.length)];
+    
+    let text = '';
+    let correctLabel = '';
+    let distractorLabels: string[] = [];
+    
+    if (type === 'desc') {
+      text = `ما هو تعريف حكم "${rule.nameArabic}"؟`;
+      correctLabel = rule.description;
+      distractorLabels = WARSH_RULES.filter(r => r.id !== rule.id).map(r => r.description);
+    } else {
+      const example = rule.examples[Math.floor(Math.random() * rule.examples.length)];
+      text = `في رواية ورش، يُعتبر "${example.split(' becomes ')[0]}" مثالاً على أي حكم؟`;
+      correctLabel = rule.nameArabic;
+      distractorLabels = WARSH_RULES.filter(r => r.id !== rule.id).map(r => r.nameArabic);
+    }
+
+    const distractors = shuffle(distractorLabels).slice(0, 4);
+    
+    const opts = shuffle([
+      { id: 'correct', label: correctLabel, isCorrect: true },
+      ...distractors.map((d, i) => ({ id: `wrong_${i}`, label: d, isCorrect: false }))
+    ]);
+
+    setQuestion({ text, options: opts });
+    setSelectedOption(null);
+    setIsSubmitted(false);
+    setIsCorrect(false);
+  };
+
+  useEffect(() => { nextQuestion(); }, []);
 
   const checkAnswer = () => {
-    if (!selectedOption) return;
+    if (!selectedOption || !question) return;
     setIsSubmitted(true);
     
-    const isCorrect = OPTIONS.find(o => o.id === selectedOption)?.isCorrect;
-    if (isCorrect) {
-      markCompleted(1, 1, 200); // 200 XP for Warsh Quiz
+    const correct = question.options.find(o => o.id === selectedOption)?.isCorrect ?? false;
+    setIsCorrect(correct);
+    if (correct) {
+      markCompleted(1, 1, 200); // 200 XP
     }
   };
+
+  if (!question) return <View style={styles.container} />;
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>اختبار أحكام ورش</Text>
-        <Text style={styles.subtitle}>الحكم: {rule.nameArabic}</Text>
+        <Text style={styles.subtitle}>اختبر معرفتك بأحكام التلاوة</Text>
       </View>
 
-      <View style={styles.ruleContext}>
-        <Text style={styles.ruleDesc}>{rule.description}</Text>
-      </View>
+      <CountdownTimer
+        durationSeconds={20}
+        onTimeUp={() => {
+          setIsSubmitted(true);
+          setIsCorrect(false);
+        }}
+        stopped={isSubmitted}
+      />
+
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
 
       <View style={styles.questionContainer}>
-        <Text style={styles.questionText}>{QUESTION}</Text>
+        <Text style={styles.questionText}>{question.text}</Text>
       </View>
 
       <View style={styles.optionsList}>
-        {OPTIONS.map((option) => {
+        {question.options.map((option) => {
           const isSelected = selectedOption === option.id;
           const showCorrect = isSubmitted && option.isCorrect;
           const showIncorrect = isSubmitted && isSelected && !option.isCorrect;
@@ -68,7 +116,7 @@ export default function WarshQuizScreen() {
                 styles.optionText,
                 (showCorrect || showIncorrect || isSelected) && styles.optionTextLight
               ]}>
-                {option.text}
+                {option.label}
               </Text>
               
               {showCorrect && <Text style={styles.resultIcon}>✅</Text>}
@@ -78,14 +126,21 @@ export default function WarshQuizScreen() {
         })}
       </View>
 
-      <View style={styles.footer}>
+            </ScrollView>
+
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, Spacing.lg) }]}>
         {isSubmitted ? (
-          <Pressable style={styles.button} onPress={() => router.back()}>
-            <Text style={styles.buttonText}>العودة إلى التحديات</Text>
-          </Pressable>
+          <View style={{ alignItems: 'center', width: '100%' }}>
+            <Text style={{ color: isCorrect ? Colors.success : Colors.error, fontSize: Typography.heading3, fontWeight: 'bold', marginBottom: Spacing.md }}>
+              {isCorrect ? 'أحسنت! +٢٠٠ نقطة 🌟' : 'إجابة خاطئة!'}
+            </Text>
+            <Pressable style={[styles.button, { width: '100%' }]} onPress={nextQuestion}>
+              <Text style={styles.buttonText}>السؤال التالي</Text>
+            </Pressable>
+          </View>
         ) : (
           <Pressable 
-            style={[styles.button, !selectedOption && styles.buttonDisabled]} 
+            style={[styles.button, !selectedOption && styles.buttonDisabled, { width: '100%' }]} 
             onPress={checkAnswer}
             disabled={!selectedOption}
           >

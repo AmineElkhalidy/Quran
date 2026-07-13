@@ -1,10 +1,11 @@
-import { View, Text, StyleSheet, Pressable, Animated } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Animated , ScrollView } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../../../src/constants/theme';
 import { useQuranStore } from '../../../src/store/quranStore';
 import { SURAH_LIST } from '../../../src/constants/surahList';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import CountdownTimer from '../../../src/components/CountdownTimer';
 
 interface SurahOrderQuestion {
   questionText: string;
@@ -14,32 +15,32 @@ interface SurahOrderQuestion {
 }
 
 function generateSurahOrderQuestion(): SurahOrderQuestion {
-  // Decide 'before' (0) or 'after' (1)
-  const isAfter = Math.random() > 0.5;
-  
-  let targetIdx: number;
+  const typeRnd = Math.random();
+  let questionText = '';
   let correctSurah: any;
-  let referenceSurah: any;
+  let explanation = '';
+  let referenceSurah1: any;
 
-  if (isAfter) {
-    // Cannot pick the last Surah (An-Nas) to ask what comes after it
-    referenceSurah = SURAH_LIST[Math.floor(Math.random() * 113)];
-    targetIdx = referenceSurah.id; // Because id is 1-indexed, target is id (which is idx + 1)
-    correctSurah = SURAH_LIST[targetIdx];
+  if (typeRnd < 0.33) {
+    referenceSurah1 = SURAH_LIST[Math.floor(Math.random() * 113)];
+    correctSurah = SURAH_LIST[referenceSurah1.id]; // Next surah (0-indexed array, id is 1-indexed)
+    questionText = `أي سورة تأتي بعد سورة ${referenceSurah1.nameArabic} في المصحف؟`;
+    explanation = `سورة ${correctSurah.nameArabic} تلي سورة ${referenceSurah1.nameArabic} مباشرة.`;
+  } else if (typeRnd < 0.66) {
+    referenceSurah1 = SURAH_LIST[Math.floor(Math.random() * 113) + 1];
+    correctSurah = SURAH_LIST[referenceSurah1.id - 2];
+    questionText = `أي سورة تأتي قبل سورة ${referenceSurah1.nameArabic} في المصحف؟`;
+    explanation = `سورة ${correctSurah.nameArabic} تسبق سورة ${referenceSurah1.nameArabic} مباشرة.`;
   } else {
-    // Cannot pick the first Surah (Al-Fatiha) to ask what comes before it
-    referenceSurah = SURAH_LIST[Math.floor(Math.random() * 113) + 1];
-    targetIdx = referenceSurah.id - 2;
-    correctSurah = SURAH_LIST[targetIdx];
+    referenceSurah1 = SURAH_LIST[Math.floor(Math.random() * 112)];
+    correctSurah = SURAH_LIST[referenceSurah1.id];
+    const referenceSurah2 = SURAH_LIST[referenceSurah1.id + 1];
+    questionText = `أي سورة تقع بين سورتي ${referenceSurah1.nameArabic} و${referenceSurah2.nameArabic}؟`;
+    explanation = `سورة ${correctSurah.nameArabic} تقع بين سورتي ${referenceSurah1.nameArabic} و${referenceSurah2.nameArabic}.`;
   }
 
-  const questionText = isAfter 
-    ? `أي سورة تأتي بعد سورة ${referenceSurah.nameArabic} في المصحف؟`
-    : `أي سورة تأتي قبل سورة ${referenceSurah.nameArabic} في المصحف؟`;
-
-  // Generate 3 random wrong options
   const wrongOptions = new Set<string>();
-  while (wrongOptions.size < 3) {
+  while (wrongOptions.size < 5) {
     const randomSurah = SURAH_LIST[Math.floor(Math.random() * 114)];
     if (randomSurah.id !== correctSurah.id) {
       wrongOptions.add(randomSurah.nameArabic);
@@ -47,18 +48,10 @@ function generateSurahOrderQuestion(): SurahOrderQuestion {
   }
 
   const options = Array.from(wrongOptions);
-  // Insert correct option at random index
-  const correctIndex = Math.floor(Math.random() * 4);
+  const correctIndex = Math.floor(Math.random() * 6);
   options.splice(correctIndex, 0, correctSurah.nameArabic);
 
-  return {
-    questionText,
-    options,
-    correctIndex,
-    explanation: isAfter 
-      ? `سورة ${correctSurah.nameArabic} تلي سورة ${referenceSurah.nameArabic} مباشرة.`
-      : `سورة ${correctSurah.nameArabic} تسبق سورة ${referenceSurah.nameArabic} مباشرة.`,
-  };
+  return { questionText, options, correctIndex, explanation };
 }
 
 export default function SurahOrderChallenge() {
@@ -105,7 +98,7 @@ export default function SurahOrderChallenge() {
     setIsCorrect(correct);
     if (correct) {
       setStreak(s => s + 1);
-      markCompleted(1, 1, 50); 
+      markCompleted(1, 1, 200); 
     } else {
       setStreak(0);
       shake();
@@ -130,6 +123,21 @@ export default function SurahOrderChallenge() {
         </View>
       </View>
 
+      <CountdownTimer
+        durationSeconds={20}
+        onTimeUp={() => {
+          if (!submitted) {
+            setSubmitted(true);
+            setIsCorrect(false);
+            setStreak(0);
+            shake();
+          }
+        }}
+        stopped={submitted}
+      />
+
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
+
       <Animated.View style={[styles.statementBox, { transform: [{ translateX: shakeAnim }] }]}>
         <Text style={styles.statementText}>{question.questionText}</Text>
         {submitted && (
@@ -143,8 +151,8 @@ export default function SurahOrderChallenge() {
         {question.options.map((opt, idx) => {
           const isSelected = userAnswer === idx;
           const isActualCorrect = question.correctIndex === idx;
-          let btnStyle = styles.optionBtn;
-          let textStyle = styles.optionText;
+          let btnStyle: any = styles.optionBtn;
+          let textStyle: any = styles.optionText;
 
           if (submitted) {
             if (isActualCorrect) {
@@ -169,10 +177,12 @@ export default function SurahOrderChallenge() {
         })}
       </View>
 
+            </ScrollView>
+
       {submitted && (
         <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, Spacing.lg) }]}>
           <Text style={isCorrect ? styles.successText : styles.failText}>
-            {isCorrect ? `أحسنت! +٥٠ نقطة 🌟` : 'إجابة خاطئة!'}
+            {isCorrect ? `أحسنت! +٢٠٠ نقطة 🌟` : 'إجابة خاطئة!'}
           </Text>
           <Pressable style={styles.nextBtn} onPress={nextQuestion}>
             <Text style={styles.nextBtnText}>السؤال التالي</Text>

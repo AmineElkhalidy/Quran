@@ -15,8 +15,8 @@ const CATEGORIES = [
         desc: 'رتب آيات الثمن في مكانها الصحيح',
         icon: '📋',
         color: Colors.verseOrder,
-        difficulty: 'متوسط',
-        xp: 100,
+        difficulty: 'خبير',
+        xp: 200,
       },
       {
         id: 'fill-blank',
@@ -25,8 +25,8 @@ const CATEGORIES = [
         desc: 'ابحث عن الكلمة المفقودة في الآية',
         icon: '🔤',
         color: Colors.fillBlank,
-        difficulty: 'سهل',
-        xp: 50,
+        difficulty: 'خبير',
+        xp: 200,
       },
       {
         id: 'verse-complete',
@@ -35,8 +35,8 @@ const CATEGORIES = [
         desc: 'اختر النصف الثاني الصحيح للآية',
         icon: '✍️',
         color: Colors.verseComplete,
-        difficulty: 'متوسط',
-        xp: 75,
+        difficulty: 'خبير',
+        xp: 200,
       },
     ],
   },
@@ -50,8 +50,8 @@ const CATEGORIES = [
         desc: 'استمع إلى المقطع وتعرف على الآية',
         icon: '🎧',
         color: Colors.listening,
-        difficulty: 'صعب',
-        xp: 150,
+        difficulty: 'خبير',
+        xp: 200,
       },
       {
         id: 'surah-id',
@@ -60,8 +60,8 @@ const CATEGORIES = [
         desc: 'من أي سورة هذه الآية؟ اختر الإجابة',
         icon: '🧠',
         color: Colors.surahId,
-        difficulty: 'متوسط',
-        xp: 80,
+        difficulty: 'خبير',
+        xp: 200,
       },
     ],
   },
@@ -75,8 +75,8 @@ const CATEGORIES = [
         desc: 'أسئلة عن آيات السور، الجزء، والنزول',
         icon: '📖',
         color: Colors.surahQuiz,
-        difficulty: 'سهل',
-        xp: 60,
+        difficulty: 'خبير',
+        xp: 200,
       },
       {
         id: 'true-false',
@@ -85,8 +85,8 @@ const CATEGORIES = [
         desc: 'حقائق قرآنية — هل هي صحيحة أم خاطئة؟',
         icon: '⚖️',
         color: Colors.trueFalse,
-        difficulty: 'سهل',
-        xp: 50,
+        difficulty: 'خبير',
+        xp: 200,
       },
       {
         id: 'warsh-quiz',
@@ -110,8 +110,8 @@ const CATEGORIES = [
         desc: 'اختر المعنى الصحيح للكلمة القرآنية',
         icon: '📖',
         color: Colors.wordMeaning,
-        difficulty: 'متوسط',
-        xp: 60,
+        difficulty: 'خبير',
+        xp: 200,
       },
       {
         id: 'tajweed',
@@ -120,8 +120,8 @@ const CATEGORIES = [
         desc: 'تعرف على الحكم التجويدي المطبق',
         icon: '🗣️',
         color: Colors.tajweed,
-        difficulty: 'صعب',
-        xp: 75,
+        difficulty: 'خبير',
+        xp: 200,
       },
       {
         id: 'similar-verses',
@@ -131,7 +131,7 @@ const CATEGORIES = [
         icon: '🔍',
         color: Colors.similarVerses,
         difficulty: 'خبير',
-        xp: 80,
+        xp: 200,
       },
       {
         id: 'surah-order',
@@ -140,8 +140,8 @@ const CATEGORIES = [
         desc: 'اختبر حفظك لترتيب سور المصحف',
         icon: '🔢',
         color: Colors.surahOrder,
-        difficulty: 'متوسط',
-        xp: 50,
+        difficulty: 'خبير',
+        xp: 200,
       },
       {
         id: 'guess-juz',
@@ -150,17 +150,14 @@ const CATEGORIES = [
         desc: 'حدد الجزء الذي تبدأ فيه السورة',
         icon: '🧩',
         color: Colors.guessJuz,
-        difficulty: 'سهل',
-        xp: 50,
+        difficulty: 'خبير',
+        xp: 200,
       },
     ],
   },
 ];
 
 const DIFFICULTY_COLORS: Record<string, string> = {
-  'سهل': '#38A169',
-  'متوسط': '#D69E2E',
-  'صعب': '#E53E3E',
   'خبير': '#805AD5',
 };
 
@@ -175,7 +172,7 @@ export default function ChallengesHubScreen() {
       contentContainerStyle={{ 
         paddingTop: insets.top, 
         paddingBottom: insets.bottom + Spacing.xl,
-        maxWidth,
+        maxWidth: maxWidth as any,
         width: '100%',
         alignSelf: 'center'
       }}

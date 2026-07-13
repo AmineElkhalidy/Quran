@@ -53,7 +53,7 @@ export default function HomeScreen() {
         { 
           paddingTop: insets.top + Spacing.md,
           paddingBottom: insets.bottom + Spacing.xxl, // Extra space for tab bar
-          maxWidth,
+          maxWidth: maxWidth as any,
           width: '100%',
           alignSelf: 'center',
         }

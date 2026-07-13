@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ActivityIndicator , ScrollView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState, useEffect } from 'react';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../../../src/constants/theme';
@@ -6,6 +6,7 @@ import { useQuranStore } from '../../../src/store/quranStore';
 import { fetchVersesForSurah } from '../../../src/services/quranApiService';
 import { getSurahById } from '../../../src/constants/surahList';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import CountdownTimer from '../../../src/components/CountdownTimer';
 
 interface Option {
   id: string;
@@ -30,7 +31,7 @@ export default function FillBlankChallengeScreen() {
 
   useEffect(() => {
     if (id === 'random') {
-      const randomSurah = Math.floor(Math.random() * (114 - 87 + 1)) + 87;
+      const randomSurah = Math.floor(Math.random() * 114) + 1;
       router.replace(`/challenges/fill-blank/${randomSurah}` as any);
     }
   }, [id, router]);
@@ -59,24 +60,27 @@ export default function FillBlankChallengeScreen() {
       
       const words = verse.text.split(' ');
       
-      let wordIndex = Math.floor(Math.random() * words.length);
-      for (let i = 0; i < 5; i++) {
-        if (words[wordIndex].length > 3) break;
-        wordIndex = Math.floor(Math.random() * words.length);
+      let wordIndex = Math.floor(Math.random() * (words.length - 1));
+      for (let i = 0; i < 10; i++) {
+        if (words[wordIndex].length > 2 && words[wordIndex + 1] && words[wordIndex + 1].length > 2) break;
+        wordIndex = Math.floor(Math.random() * (words.length - 1));
       }
 
-      const correctWord = words[wordIndex];
+      const correctWord = words[wordIndex] + ' ' + words[wordIndex + 1];
       
       const part1 = words.slice(0, wordIndex).join(' ') + (wordIndex > 0 ? ' ' : '');
-      const part2 = (wordIndex < words.length - 1 ? ' ' : '') + words.slice(wordIndex + 1).join(' ');
+      const part2 = (wordIndex < words.length - 2 ? ' ' : '') + words.slice(wordIndex + 2).join(' ');
 
-      const allWords = verses.flatMap(v => v.text.split(' ')).filter(w => w.length > 2 && w !== correctWord);
+      const allWords = verses.flatMap(v => v.text.split(' ')).filter(w => w.length > 2);
       
       const distractors = new Set<string>();
-      while (distractors.size < 3 && allWords.length > 0) {
-        const randWord = allWords[Math.floor(Math.random() * allWords.length)];
-        distractors.add(randWord);
-        if (distractors.size >= allWords.length) break;
+      while (distractors.size < 5 && allWords.length > 1) {
+        const randIndex = Math.floor(Math.random() * (allWords.length - 1));
+        const pair = allWords[randIndex] + ' ' + allWords[randIndex + 1];
+        if (pair !== correctWord) {
+          distractors.add(pair);
+        }
+        if (distractors.size >= allWords.length - 1) break;
       }
 
       const optionsList: Option[] = [
@@ -100,7 +104,7 @@ export default function FillBlankChallengeScreen() {
     setIsCorrect(correct);
 
     if (correct) {
-      markCompleted(surahIdNum, 1, 50); // 50 XP
+      markCompleted(surahIdNum, 1, 200); // 200 XP
     }
   };
 
@@ -123,6 +127,17 @@ export default function FillBlankChallengeScreen() {
         <Text style={styles.title}>أكمل الفراغ</Text>
         <Text style={styles.subtitle}>اختر الكلمة الصحيحة لإكمال الآية من {surah?.nameArabic ?? 'القرآن الكريم'}.</Text>
       </View>
+
+      <CountdownTimer
+        durationSeconds={30}
+        onTimeUp={() => {
+          setIsSubmitted(true);
+          setIsCorrect(false);
+        }}
+        stopped={isSubmitted}
+      />
+
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
 
       <View style={styles.ayahContainer}>
         <Text style={styles.ayahText}>
@@ -167,11 +182,13 @@ export default function FillBlankChallengeScreen() {
         })}
       </View>
 
+            </ScrollView>
+
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, Spacing.lg) }]}>
         {isSubmitted ? (
           <View style={styles.resultSection}>
             {isCorrect ? (
-              <Text style={styles.successText}>صحيح! +50 نقطة 🌟</Text>
+              <Text style={styles.successText}>صحيح! +200 نقطة 🌟</Text>
             ) : (
               <Text style={styles.failText}>خطأ، حاول مرة أخرى.</Text>
             )}

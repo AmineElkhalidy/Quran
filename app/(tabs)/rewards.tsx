@@ -23,9 +23,9 @@ export default function RewardsScreen() {
   return (
     <ScrollView 
       style={styles.container}
-      contentContainerStyle={{
-        paddingTop: insets.top,
-        maxWidth,
+      contentContainerStyle={{ 
+        paddingTop: insets.top + Spacing.md,
+        maxWidth: maxWidth as any,
         width: '100%',
         alignSelf: 'center'
       }}

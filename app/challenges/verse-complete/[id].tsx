@@ -6,6 +6,7 @@ import { useQuranStore } from '../../../src/store/quranStore';
 import { fetchVersesForSurah } from '../../../src/services/quranApiService';
 import { getSurahById } from '../../../src/constants/surahList';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import CountdownTimer from '../../../src/components/CountdownTimer';
 
 interface Option { id: string; label: string; isCorrect: boolean; }
 
@@ -18,11 +19,11 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-// Split a verse roughly in half by words
+// Split a verse roughly 1/3
 function splitVerse(text: string): [string, string] {
   const words = text.split(' ');
-  const mid = Math.ceil(words.length / 2);
-  return [words.slice(0, mid).join(' '), words.slice(mid).join(' ')];
+  const splitPoint = Math.max(1, Math.floor(words.length / 3));
+  return [words.slice(0, splitPoint).join(' '), words.slice(splitPoint).join(' ')];
 }
 
 export default function VerseCompleteChallenge() {
@@ -33,12 +34,12 @@ export default function VerseCompleteChallenge() {
 
   useEffect(() => {
     if (id === 'random') {
-      const r = Math.floor(Math.random() * (114 - 87 + 1)) + 87;
+      const r = Math.floor(Math.random() * 114) + 1;
       router.replace(`/challenges/verse-complete/${r}` as any);
     }
   }, [id, router]);
 
-  const surahIdNum = id === 'random' ? 87 : parseInt(Array.isArray(id) ? id[0] : id ?? '87', 10);
+  const surahIdNum = id === 'random' ? 1 : parseInt(Array.isArray(id) ? id[0] : id ?? '1', 10);
   const surah = getSurahById(surahIdNum);
 
   const [isLoading, setIsLoading] = useState(true);
@@ -67,7 +68,7 @@ export default function VerseCompleteChallenge() {
 
       // Distractors: second halves of other verses
       const others = verses.filter(v => v.ayahNumber !== target.ayahNumber && v.text.split(' ').length >= 4);
-      const distractors = shuffle(others).slice(0, 3).map(v => splitVerse(v.text)[1]);
+      const distractors = shuffle(others).slice(0, 5).map(v => splitVerse(v.text)[1]);
 
       const opts: Option[] = shuffle([
         { id: 'correct', label: half2, isCorrect: true },
@@ -87,7 +88,7 @@ export default function VerseCompleteChallenge() {
     setSubmitted(true);
     const isCorrect = options.find(o => o.id === selected)?.isCorrect ?? false;
     setCorrect(isCorrect);
-    if (isCorrect) markCompleted(surahIdNum, 1, 75);
+    if (isCorrect) markCompleted(surahIdNum, 1, 200);
   };
 
   if (isLoading) return (
@@ -111,6 +112,16 @@ export default function VerseCompleteChallenge() {
         <Text style={styles.title}>إكمال الآية</Text>
         <Text style={styles.subtitle}>اختر الجزء الثاني الصحيح لإكمال الآية من {surah?.nameArabic ?? 'القرآن الكريم'}</Text>
       </View>
+      <CountdownTimer
+        durationSeconds={30}
+        onTimeUp={() => {
+          setSubmitted(true);
+          setCorrect(false);
+        }}
+        stopped={submitted}
+      />
+
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
 
       {/* First half display */}
       <View style={styles.firstHalfBox}>
@@ -140,11 +151,13 @@ export default function VerseCompleteChallenge() {
         })}
       </ScrollView>
 
+            </ScrollView>
+
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, Spacing.lg) }]}>
         {submitted ? (
           <View style={styles.resultSection}>
             <Text style={correct ? styles.successText : styles.failText}>
-              {correct ? 'صحيح! +٧٥ نقطة 🌟' : 'خطأ، هذه الإجابة الصحيحة باللون الأخضر'}
+              {correct ? 'صحيح! +٢٠٠ نقطة 🌟' : 'خطأ، هذه الإجابة الصحيحة باللون الأخضر'}
             </Text>
             <Pressable style={styles.btn} onPress={() => router.replace('/challenges/verse-complete/random' as any)}>
               <Text style={styles.btnText}>التحدي التالي</Text>
