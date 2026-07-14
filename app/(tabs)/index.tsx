@@ -90,7 +90,7 @@ export default function HomeScreen() {
         <View style={styles.miniStatsRow}>
           <View style={styles.miniStat}>
             <Text style={styles.miniStatValue}>{stats.totalThumnCompleted}</Text>
-            <Text style={styles.miniStatLabel}>أثمان مكتملة</Text>
+            <Text style={styles.miniStatLabel}>أرباع مكتملة</Text>
           </View>
           <View style={styles.miniStatDivider} />
           <View style={styles.miniStat}>

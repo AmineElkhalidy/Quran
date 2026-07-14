@@ -6,6 +6,7 @@ import { getSurahById } from '../../src/constants/surahList';
 import { AthmanProgress } from '../../src/components/AthmanProgress';
 import { AudioControls } from '../../src/components/AudioControls';
 import { VerseActionsSheet } from '../../src/components/VerseActionsSheet';
+import { InlineVerseOrdering } from '../../src/components/InlineVerseOrdering';
 import { calculateThumnBoundaries } from '../../src/constants/athmanBoundaries';
 import { fetchVersesForSurah, ApiVerse } from '../../src/services/quranApiService';
 import type { Thumn } from '../../src/types';
@@ -30,6 +31,9 @@ export default function SurahReaderScreen() {
   // Verse actions sheet state
   const [selectedVerse, setSelectedVerse] = useState<ApiVerse | null>(null);
   const [isSheetVisible, setIsSheetVisible] = useState(false);
+
+  // Inline verse ordering mode (isolated to this screen)
+  const [isOrderingMode, setIsOrderingMode] = useState(false);
 
   const thumns = calculateThumnBoundaries(id);
   
@@ -74,10 +78,31 @@ export default function SurahReaderScreen() {
     router.push(`/tafsir/${verse.surahId}/${verse.ayahNumber}` as any);
   }, [router]);
 
+  const handleOrderVerses = useCallback((_verse: ApiVerse) => {
+    setIsOrderingMode(true);
+  }, []);
+
+  const handleExitOrdering = useCallback(() => {
+    setIsOrderingMode(false);
+  }, []);
+
   // Each thumn page renders its own AudioControls with its own correct ayah range.
   // This completely eliminates all scroll-tracking complexity.
   const renderThumn = ({ item }: { item: Thumn }) => {
     const thumnVerses = verses.filter(v => v.ayahNumber >= item.startAyah && v.ayahNumber <= item.endAyah);
+
+    // ── Inline ordering mode ──────────────────────────────────────────
+    if (isOrderingMode) {
+      return (
+        <View style={{ width, flex: 1 }}>
+          <InlineVerseOrdering
+            verses={thumnVerses}
+            thumnLabel={item.label}
+            onExit={handleExitOrdering}
+          />
+        </View>
+      );
+    }
     
     return (
       <View style={{ width, flex: 1 }}>
@@ -165,7 +190,7 @@ export default function SurahReaderScreen() {
         <Text style={styles.meta}>{surah.revelationType === 'Makki' ? 'مكية' : 'مدنية'} • {surah.verseCount} آية</Text>
         
         <View style={styles.athmanContainer}>
-          <AthmanProgress completedThumns={completedThumns} currentThumn={currentThumn?.thumnNumber || 1} />
+          <AthmanProgress completedThumns={completedThumns} currentThumn={currentThumn?.thumnNumber || 1} totalSegments={thumns.length} />
         </View>
       </View>
       <View style={styles.headerBorder} />
@@ -196,6 +221,7 @@ export default function SurahReaderScreen() {
             if (clamped !== currentThumnIndex) {
               setCurrentThumnIndex(clamped);
               setRevealedAyahs({});
+              setIsOrderingMode(false);
             }
           }}
           style={styles.readerArea}
@@ -209,6 +235,7 @@ export default function SurahReaderScreen() {
         surahNameArabic={surah.nameArabic}
         onClose={handleCloseSheet}
         onShowTafsir={handleShowTafsir}
+        onOrderVerses={handleOrderVerses}
       />
     </View>
   );

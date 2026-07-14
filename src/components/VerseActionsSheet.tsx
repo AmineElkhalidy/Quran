@@ -11,6 +11,8 @@ interface VerseActionsSheetProps {
   surahNameArabic: string;
   onClose: () => void;
   onShowTafsir: (verse: ApiVerse) => void;
+  /** When provided, the "Order Verses" button triggers inline mode instead of navigating. */
+  onOrderVerses?: (verse: ApiVerse) => void;
 }
 
 export function VerseActionsSheet({
@@ -19,6 +21,7 @@ export function VerseActionsSheet({
   surahNameArabic,
   onClose,
   onShowTafsir,
+  onOrderVerses,
 }: VerseActionsSheetProps) {
   const slideAnim = useRef(new Animated.Value(300)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
@@ -85,10 +88,16 @@ export function VerseActionsSheet({
   const handleOrderVerse = useCallback(() => {
     if (!verse) return;
     handleClose();
-    setTimeout(() => {
-      router.push(`/challenges/verse-ordering/${verse.surahId}?startVerse=${verse.ayahNumber}` as any);
-    }, 300);
-  }, [verse, handleClose, router]);
+    if (onOrderVerses) {
+      // Inline mode — let the parent handle it
+      setTimeout(() => onOrderVerses(verse), 300);
+    } else {
+      // Fallback — navigate to global challenge screen
+      setTimeout(() => {
+        router.push(`/challenges/verse-ordering/${verse.surahId}?startVerse=${verse.ayahNumber}` as any);
+      }, 300);
+    }
+  }, [verse, handleClose, router, onOrderVerses]);
 
   if (!verse) return null;
 

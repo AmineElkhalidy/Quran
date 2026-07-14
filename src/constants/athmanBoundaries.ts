@@ -1,50 +1,30 @@
 import type { Thumn } from '../types';
-import { SURAH_LIST } from './surahList';
+import { getRubSegmentsForSurah, getRubIndexForAyah } from './quranDivisions';
 
-// ─── Athman (Eighths) Boundary Calculator ────────────────────────────────────
-// Each surah is divided into 8 equal parts based on ayah count.
-// thumn 1 = ayahs 1..ceil(total/8)
-// ...etc
+// ─── Athman Boundaries — Real Rub' al-Hizb ──────────────────────────────────
+// Delegates to quranDivisions.ts which holds the actual 240 rub' al-hizb
+// boundaries from the standard Uthmani/Warsh mushaf.
+//
+// The function signatures are preserved for backward compatibility with all
+// consumers (reader, home screen, challenges, store).
 
-const THUMN_LABELS_AR = [
-  'الثمن الأول', 'الثمن الثاني', 'الثمن الثالث', 'الثمن الرابع',
-  'الثمن الخامس', 'الثمن السادس', 'الثمن السابع', 'الثمن الثامن',
-];
-
+/**
+ * Get all rub' al-hizb segments for a surah, as Thumn objects.
+ * The number of segments varies per surah (NOT always 8).
+ * Short surahs that share a rub' with others get 1 segment covering all their ayahs.
+ */
 export function calculateThumnBoundaries(surahId: number): Thumn[] {
-  const surah = SURAH_LIST.find(s => s.id === surahId);
-  if (!surah) return [];
-
-  const total = surah.verseCount;
-  const thumanList: Thumn[] = [];
-
-  for (let i = 0; i < 8; i++) {
-    const startAyah = Math.floor((i * total) / 8) + 1;
-    const endAyah = Math.floor(((i + 1) * total) / 8);
-    // Last thumn goes to end
-    const clampedEnd = i === 7 ? total : endAyah;
-
-    thumanList.push({
-      surahId,
-      thumnNumber: i + 1,
-      startAyah,
-      endAyah: clampedEnd,
-      label: THUMN_LABELS_AR[i],
-    });
-  }
-
-  return thumanList;
+  return getRubSegmentsForSurah(surahId);
 }
 
-// Pre-compute all 114 × 8 = 912 thumn boundaries
+// Pre-compute all surah boundaries (used by some consumers)
 export const ALL_THUMN_BOUNDARIES: Map<number, Thumn[]> = new Map(
-  SURAH_LIST.map(s => [s.id, calculateThumnBoundaries(s.id)])
+  Array.from({ length: 114 }, (_, i) => [i + 1, calculateThumnBoundaries(i + 1)] as [number, Thumn[]])
 );
 
+/**
+ * Find which segment index (1-based) an ayah belongs to within its surah.
+ */
 export function getThumnForAyah(surahId: number, ayahNumber: number): number {
-  const thumanList = ALL_THUMN_BOUNDARIES.get(surahId) ?? [];
-  const thumn = thumanList.find(
-    t => ayahNumber >= t.startAyah && ayahNumber <= t.endAyah
-  );
-  return thumn?.thumnNumber ?? 1;
+  return getRubIndexForAyah(surahId, ayahNumber);
 }
