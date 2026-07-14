@@ -69,6 +69,7 @@ export default function RootLayout() {
       <Stack.Screen name="challenges/verse-complete/[id]" options={{ title: 'إكمال الآية' }} />
       <Stack.Screen name="challenges/surah-quiz/[id]" options={{ title: 'معلومات السور' }} />
       <Stack.Screen name="challenges/true-false/[id]" options={{ title: 'صح أم خطأ' }} />
+      <Stack.Screen name="challenges/rub-picker" options={{ title: 'تحديات الربع' }} />
       <Stack.Screen name="tafsir/[surahId]/[ayahNumber]" options={{ title: 'التفسير' }} />
     </Stack>
   );

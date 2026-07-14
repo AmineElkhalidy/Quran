@@ -34,10 +34,15 @@ function shuffleArray<T>(arr: T[]): T[] {
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 export default function VerseOrderingScreen() {
-  const { id, startVerse } = useLocalSearchParams();
+  const { id, startVerse, startAyah: startAyahParam, endAyah: endAyahParam } = useLocalSearchParams();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const markCompleted = useQuranStore(state => state.markCompleted);
+
+  // Parse optional explicit rub' range params
+  const rubStartAyah = startAyahParam ? parseInt(Array.isArray(startAyahParam) ? startAyahParam[0] : startAyahParam, 10) : undefined;
+  const rubEndAyah = endAyahParam ? parseInt(Array.isArray(endAyahParam) ? endAyahParam[0] : endAyahParam, 10) : undefined;
+  const isRubScoped = rubStartAyah != null && rubEndAyah != null;
 
   // Handle "random" surah
   useEffect(() => {
@@ -83,7 +88,10 @@ export default function VerseOrderingScreen() {
 
       let selectedVerses: ApiVerse[];
 
-      if (startVerse) {
+      if (isRubScoped) {
+        // Came from the rub' challenges picker — use exact ayah range
+        selectedVerses = verses.filter(v => v.ayahNumber >= rubStartAyah! && v.ayahNumber <= rubEndAyah!);
+      } else if (startVerse) {
         // Came from the reader — use the thumn that contains this verse
         const sv = parseInt(Array.isArray(startVerse) ? startVerse[0] : startVerse, 10);
         const thumn = thumns.find(t => sv >= t.startAyah && sv <= t.endAyah);

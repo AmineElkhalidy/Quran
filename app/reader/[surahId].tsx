@@ -35,6 +35,7 @@ export default function SurahReaderScreen() {
   // Inline verse ordering mode (isolated to this screen)
   const [isOrderingMode, setIsOrderingMode] = useState(false);
 
+
   const thumns = calculateThumnBoundaries(id);
   
   useEffect(() => {
@@ -178,6 +179,7 @@ export default function SurahReaderScreen() {
           startAyah={item.startAyah}
           endAyah={item.endAyah}
           totalAyahs={surah?.verseCount ?? 0}
+          rubLabel={item.label}
         />
       </View>
     );

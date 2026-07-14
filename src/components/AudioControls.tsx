@@ -9,13 +9,15 @@ interface AudioControlsProps {
   startAyah: number;
   endAyah: number;
   totalAyahs: number;
+  rubLabel?: string;
 }
 
 export function AudioControls({ 
   surahId, 
   startAyah,
   endAyah,
-  totalAyahs 
+  totalAyahs,
+  rubLabel,
 }: AudioControlsProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const router = useRouter();
@@ -44,6 +46,10 @@ export function AudioControls({
     router.push(`/challenges/verse-ordering/${surahId}?startVerse=${startAyah}` as any);
   };
 
+  const handleChallenges = () => {
+    router.push(`/challenges/rub-picker?surahId=${surahId}&startAyah=${startAyah}&endAyah=${endAyah}&rubLabel=${encodeURIComponent(rubLabel ?? '')}` as any);
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.controlsRow}>
@@ -65,6 +71,15 @@ export function AudioControls({
         >
           <Text style={styles.icon}>🧩</Text>
           <Text style={styles.label}>ترتيب الآيات</Text>
+        </Pressable>
+
+        {/* Rub' Challenges */}
+        <Pressable 
+          style={[styles.actionButton, styles.challengesActionButton]}
+          onPress={handleChallenges}
+        >
+          <Text style={styles.icon}>📝</Text>
+          <Text style={[styles.label, styles.challengesLabel]}>تحديات الربع</Text>
         </Pressable>
       </View>
     </View>
@@ -105,5 +120,11 @@ const styles = StyleSheet.create({
   },
   labelActive: {
     color: Colors.textLight,
+  },
+  challengesActionButton: {
+    backgroundColor: Colors.primary,
+  },
+  challengesLabel: {
+    color: Colors.gold,
   },
 });

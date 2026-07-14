@@ -20,10 +20,15 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 export default function SurahIdChallenge() {
-  const { id } = useLocalSearchParams();
+  const { id, startAyah: startAyahParam, endAyah: endAyahParam } = useLocalSearchParams();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const markCompleted = useQuranStore(s => s.markCompleted);
+
+  // Parse optional rub' range params
+  const rubStartAyah = startAyahParam ? parseInt(Array.isArray(startAyahParam) ? startAyahParam[0] : startAyahParam, 10) : undefined;
+  const rubEndAyah = endAyahParam ? parseInt(Array.isArray(endAyahParam) ? endAyahParam[0] : endAyahParam, 10) : undefined;
+  const isRubScoped = rubStartAyah != null && rubEndAyah != null;
 
   useEffect(() => {
     if (id === 'random') {
@@ -48,7 +53,12 @@ export default function SurahIdChallenge() {
     setSubmitted(false);
     setCorrect(false);
 
-    fetchVersesForSurah(surahIdNum).then(verses => {
+    fetchVersesForSurah(surahIdNum).then(allVerses => {
+      // Scope to rub' range if params are provided
+      const verses = isRubScoped
+        ? allVerses.filter(v => v.ayahNumber >= rubStartAyah! && v.ayahNumber <= rubEndAyah!)
+        : allVerses;
+
       if (cancelled || verses.length === 0) { setIsLoading(false); return; }
 
       const verse = verses[Math.floor(Math.random() * verses.length)];
