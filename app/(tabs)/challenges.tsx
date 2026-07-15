@@ -1,4 +1,6 @@
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import AnimatedPressable from '../../src/components/AnimatedPressable';
 import { useRouter } from 'expo-router';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../../src/constants/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -104,6 +106,16 @@ const CATEGORIES = [
     label: 'الفهم والتجويد',
     challenges: [
       {
+        id: 'tafsir-quiz',
+        route: '/challenges/tafsir-quiz/random',
+        title: 'تحدي التفسير',
+        desc: 'اختر التفسير الأقرب لمعنى الآية',
+        icon: '📖',
+        color: Colors.tafsirQuiz,
+        difficulty: 'خبير',
+        xp: 200,
+      },
+      {
         id: 'word-meaning',
         route: '/challenges/word-meaning/random',
         title: 'معاني الكلمات',
@@ -177,16 +189,21 @@ export default function ChallengesHubScreen() {
         alignSelf: 'center'
       }}
     >
-      <View style={styles.header}>
+      <LinearGradient
+        colors={Colors.gradients.primary as any}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
         <Text style={styles.headerTitle}>التحديات</Text>
         <Text style={styles.headerSub}>اختبر حفظك واكسب نقاط الخبرة!</Text>
-      </View>
+      </LinearGradient>
 
       {CATEGORIES.map(cat => (
         <View key={cat.label} style={styles.category}>
           <Text style={styles.categoryLabel}>{cat.label}</Text>
           {cat.challenges.map(challenge => (
-            <Pressable
+            <AnimatedPressable
               key={challenge.id}
               style={({ pressed }) => [
                 styles.card,
@@ -207,7 +224,7 @@ export default function ChallengesHubScreen() {
                   <Text style={styles.xpText}>+{challenge.xp} نقطة</Text>
                 </View>
               </View>
-            </Pressable>
+            </AnimatedPressable>
           ))}
         </View>
       ))}
@@ -220,10 +237,10 @@ const styles = StyleSheet.create({
   header: {
     padding: Spacing.lg,
     paddingBottom: Spacing.xl,
-    backgroundColor: Colors.primary,
     borderBottomLeftRadius: BorderRadius.xl,
     borderBottomRightRadius: BorderRadius.xl,
     marginBottom: Spacing.lg,
+    ...Shadow.header,
   },
   headerTitle: { color: Colors.gold, fontSize: Typography.heading1, fontWeight: 'bold' },
   headerSub: { color: Colors.textLight, fontSize: Typography.body, marginTop: 4 },

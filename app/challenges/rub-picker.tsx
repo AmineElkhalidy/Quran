@@ -1,4 +1,6 @@
-import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import AnimatedPressable from '../../src/components/AnimatedPressable';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../../src/constants/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -79,7 +81,18 @@ const ALL_CHALLENGES: ChallengeEntry[] = [
         ? `/challenges/surah-id/${s}?startAyah=${sa}&endAyah=${ea}`
         : `/challenges/surah-id/${s}`,
   },
-
+  {
+    id: 'tafsir-quiz',
+    title: 'تحدي التفسير',
+    desc: 'اختر التفسير الأقرب لمعنى الآية',
+    icon: '📖',
+    color: Colors.tafsirQuiz,
+    isVerseBased: true,
+    buildRoute: (s, sa, ea) =>
+      sa != null && ea != null
+        ? `/challenges/tafsir-quiz/${s}?startAyah=${sa}&endAyah=${ea}`
+        : `/challenges/tafsir-quiz/${s}`,
+  },
 ];
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
@@ -104,7 +117,12 @@ export default function RubChallengesPickerScreen() {
   return (
     <View style={[styles.container, { paddingBottom: insets.bottom }]}>
       {/* Header */}
-      <View style={styles.headerContainer}>
+      <LinearGradient
+        colors={Colors.gradients.primary as any}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.headerContainer}
+      >
         <Text style={styles.headerIcon}>📝</Text>
         <View style={styles.headerTextWrap}>
           <Text style={styles.headerTitle}>تحديات الربع</Text>
@@ -113,7 +131,7 @@ export default function RubChallengesPickerScreen() {
             الآيات {startAyah} – {endAyah}
           </Text>
         </View>
-      </View>
+      </LinearGradient>
 
       {/* Challenge cards */}
       <ScrollView
@@ -128,7 +146,7 @@ export default function RubChallengesPickerScreen() {
         </Text>
 
         {ALL_CHALLENGES.filter(c => c.isVerseBased).map(challenge => (
-          <Pressable
+          <AnimatedPressable
             key={challenge.id}
             style={({ pressed }) => [
               styles.challengeCard,
@@ -145,7 +163,7 @@ export default function RubChallengesPickerScreen() {
               <Text style={styles.cardDesc}>{challenge.desc}</Text>
             </View>
             <Text style={styles.arrow}>←</Text>
-          </Pressable>
+          </AnimatedPressable>
         ))}
 
       </ScrollView>
@@ -167,10 +185,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.lg,
-    backgroundColor: Colors.primary,
     borderBottomLeftRadius: BorderRadius.xl,
     borderBottomRightRadius: BorderRadius.xl,
     marginBottom: Spacing.md,
+    ...Shadow.header,
   },
   headerIcon: {
     fontSize: 36,

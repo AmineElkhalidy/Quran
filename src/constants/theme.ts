@@ -50,6 +50,8 @@ export const Colors = {
   surahOrder: '#E53E3E',   // Red — Surah Order
   guessJuz: '#4C51BF',     // Indigo — Guess the Juz
   similarVerses: '#059669', // Emerald — Similar Verses
+  tafsirQuiz: '#9C4221',   // Rust/Brown - Tafsir 
+
 
   // Reward tiers
   bronze: '#CD7F32',
@@ -59,6 +61,13 @@ export const Colors = {
 
   // Islamic geometric pattern overlay (subtle)
   patternOverlay: 'rgba(201, 168, 76, 0.06)',
+  
+  // Gradients for premium feel
+  gradients: {
+    primary: ['#0D5C63', '#1A7A82'], // Dark teal to lighter teal
+    gold: ['#C9A84C', '#E4C170'],
+    card: ['#FFFFFF', '#FDFBF7'],
+  },
 } as const;
 
 export const Typography = {
@@ -103,11 +112,18 @@ export const BorderRadius = {
 
 export const Shadow = {
   card: {
+    shadowColor: '#0A1628',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 3,
+  },
+  header: {
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 6,
   },
   gold: {
     shadowColor: '#C9A84C',
