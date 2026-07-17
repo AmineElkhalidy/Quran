@@ -1,0 +1,8 @@
+node_modules/
+.git/
+.expo/
+dist/
+jdk17/
+jdk17.zip
+android/
+ios/
