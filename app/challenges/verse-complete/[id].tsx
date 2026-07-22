@@ -169,7 +169,16 @@ export default function VerseCompleteChallenge() {
             <Text style={correct ? styles.successText : styles.failText}>
               {correct ? 'صحيح! +٢٠٠ نقطة 🌟' : 'خطأ، هذه الإجابة الصحيحة باللون الأخضر'}
             </Text>
-            <Pressable style={styles.btn} onPress={() => router.replace('/challenges/verse-complete/random' as any)}>
+            <Pressable style={styles.btn} onPress={() => {
+              if (isRubScoped) {
+                router.replace({
+                  pathname: `/challenges/verse-complete/${surahIdNum}`,
+                  params: { startAyah: rubStartAyah, endAyah: rubEndAyah, t: Date.now() }
+                } as any);
+              } else {
+                router.replace('/challenges/verse-complete/random' as any);
+              }
+            }}>
               <Text style={styles.btnText}>التحدي التالي</Text>
             </Pressable>
           </View>

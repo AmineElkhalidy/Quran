@@ -211,7 +211,16 @@ export default function ListeningChallengeScreen() {
             )}
             <View style={styles.footerButtons}>
               {isCorrect ? (
-                <Pressable style={[styles.button, { flex: 1 }]} onPress={() => router.replace('/challenges/listening/random' as any)}>
+                <Pressable style={[styles.button, { flex: 1 }]} onPress={() => {
+                  if (isRubScoped) {
+                    router.replace({
+                      pathname: `/challenges/listening/${surahIdNum}`,
+                      params: { startAyah: rubStartAyah, endAyah: rubEndAyah, t: Date.now() }
+                    } as any);
+                  } else {
+                    router.replace('/challenges/listening/random' as any);
+                  }
+                }}>
                   <Text style={styles.buttonText}>التحدي التالي</Text>
                 </Pressable>
               ) : (

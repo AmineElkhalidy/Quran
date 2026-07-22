@@ -319,7 +319,16 @@ export default function VerseOrderingScreen() {
               <Text style={styles.resultCorrect}>أحسنت! +٢٠٠ نقطة 🌟</Text>
               <Pressable
                 style={[styles.btn, styles.btnFull]}
-                onPress={() => router.replace('/challenges/verse-ordering/random' as any)}
+                onPress={() => {
+                  if (isRubScoped) {
+                    router.replace({
+                      pathname: `/challenges/verse-ordering/${surahIdNum}`,
+                      params: { startAyah: rubStartAyah, endAyah: rubEndAyah, t: Date.now() }
+                    } as any);
+                  } else {
+                    router.replace('/challenges/verse-ordering/random' as any);
+                  }
+                }}
               >
                 <Text style={styles.btnText}>التحدي التالي</Text>
               </Pressable>

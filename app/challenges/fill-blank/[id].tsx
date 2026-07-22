@@ -204,7 +204,16 @@ export default function FillBlankChallengeScreen() {
             )}
             <View style={styles.footerButtons}>
               {isCorrect ? (
-                <Pressable style={[styles.button, { flex: 1 }]} onPress={() => router.replace('/challenges/fill-blank/random' as any)}>
+                <Pressable style={[styles.button, { flex: 1 }]} onPress={() => {
+                  if (isRubScoped) {
+                    router.replace({
+                      pathname: `/challenges/fill-blank/${surahIdNum}`,
+                      params: { startAyah: rubStartAyah, endAyah: rubEndAyah, t: Date.now() }
+                    } as any);
+                  } else {
+                    router.replace('/challenges/fill-blank/random' as any);
+                  }
+                }}>
                   <Text style={styles.buttonText}>التحدي التالي</Text>
                 </Pressable>
               ) : (

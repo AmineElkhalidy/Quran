@@ -153,7 +153,16 @@ export default function SurahIdChallenge() {
             <Text style={correct ? styles.successText : styles.failText}>
               {correct ? 'صحيح! +٢٠٠ نقطة 🌟' : `الإجابة: ${options.find(o => o.isCorrect)?.label}`}
             </Text>
-            <Pressable style={styles.btn} onPress={() => router.replace('/challenges/surah-id/random' as any)}>
+            <Pressable style={styles.btn} onPress={() => {
+              if (isRubScoped) {
+                router.replace({
+                  pathname: `/challenges/surah-id/${surahIdNum}`,
+                  params: { startAyah: rubStartAyah, endAyah: rubEndAyah, t: Date.now() }
+                } as any);
+              } else {
+                router.replace('/challenges/surah-id/random' as any);
+              }
+            }}>
               <Text style={styles.btnText}>التحدي التالي</Text>
             </Pressable>
           </View>

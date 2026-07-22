@@ -148,6 +148,17 @@ export default function TafsirChallengeScreen() {
     );
   }
 
+  if (options.length === 0) {
+    return (
+      <View style={[styles.container, styles.centerContent]}>
+        <Text style={{ fontSize: Typography.body, color: Colors.textMuted, marginBottom: Spacing.md }}>تعذر تحميل التحدي</Text>
+        <Pressable style={styles.button} onPress={() => router.back()}>
+          <Text style={styles.buttonText}>العودة</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       {isSubmitted && isCorrect && <VictoryOverlay xpEarned={200} />}
@@ -213,9 +224,24 @@ export default function TafsirChallengeScreen() {
               <Text style={styles.failText}>خطأ، حاول مرة أخرى.</Text>
             )}
             <View style={styles.footerButtons}>
-              <Pressable style={[styles.button, { flex: 1 }]} onPress={() => router.back()}>
-                <Text style={styles.buttonText}>عودة</Text>
-              </Pressable>
+              {isCorrect ? (
+                <Pressable style={[styles.button, { flex: 1 }]} onPress={() => {
+                  if (isRubScoped) {
+                    router.replace({
+                      pathname: `/challenges/tafsir-quiz/${surahIdNum}`,
+                      params: { startAyah: rubStartAyah, endAyah: rubEndAyah, t: Date.now() }
+                    } as any);
+                  } else {
+                    router.replace('/challenges/tafsir-quiz/random' as any);
+                  }
+                }}>
+                  <Text style={styles.buttonText}>التحدي التالي</Text>
+                </Pressable>
+              ) : (
+                <Pressable style={[styles.button, { flex: 1 }]} onPress={() => router.back()}>
+                  <Text style={styles.buttonText}>خروج</Text>
+                </Pressable>
+              )}
             </View>
           </View>
         ) : (
